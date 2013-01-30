@@ -252,7 +252,7 @@ module TypeScriptUtil {
             for (var c in classes) {
                 var cl = classes[c];
                 str += 'class ' + cl.type + ' {\n';
-                str += '  constructor' + cl.toConstructorString() + ' { } ' + cl.name + '\n';
+                str += '  constructor' + cl.toConstructorString() + ' { }\n';
                 if (cl.attributes) {
                     str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
                 }
