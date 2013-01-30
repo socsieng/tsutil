@@ -103,7 +103,7 @@ module TypeScriptUtil {
         maxIterations: 3
     }
 
-    export function toTypeScript(obj: any, maxIterations?: number): any {
+    export function inspect(obj: any, maxIterations?: number): any {
         var objectsDone = [];
         var typesDone = [];
         var classes: any = {};
@@ -195,62 +195,74 @@ module TypeScriptUtil {
             });
         }
 
-        function toTypeScriptDefinition(obj: any, depth: number, format: string, name: string) {
-            if (obj) {
-                var props = Object.getOwnPropertyNames(obj);
-                var indent = '  ';
-                var str = '';
-
-                if (format === 'module') {
-                    for (var i = 0; i < depth; i++) { str += indent }
-                    str += 'module ' + name + ' {\n';
-                }
-
-                props.forEach(function (prop) {
-                    var infoType = obj[prop].constructor.name;
-                    var isClass = obj[prop] instanceof ClassInfo;
-                    for (var i = 0; i <= depth; i++) { str += indent }
-
-                    if (format === 'module') {
-                        if (infoType === 'FunctionInfo') {
-                            str += 'export function ';
-                            str += prop + obj[prop].toTypeString() + ' { }\n';
-                        } else {
-                            str += 'export var ';
-                            str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
-                        }
-                    } else if (format === 'class') {
-                        if (infoType === 'FunctionInfo') {
-                            str += prop + obj[prop].toTypeString() + ' { }\n';
-                        } else {
-                            str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
-                        }
-                    }
-
-                    if (obj[prop].attributes && !isClass) {
-                        str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
-                    }
-                });
-
-                if (format === 'module') {
-                    for (var i = 0; i < depth; i++) { str += indent }
-                    str += '}\n';
-                }
-
-                return str;
-            }
-            return '';
-        }
-
         if (obj) {
             var hier = {}
             parseObject(obj, hier, 0);
             //return hier;
 
-            var str = toTypeScriptDefinition(hier, 0, 'module', 'MyModule');
+            return {
+                structure: hier,
+                classes: classes
+            };
+        }
+        return null;
+    }
 
-            for (var c in classes) {
-                var cl = classes[c];
+    function toTypeScriptDefinition(obj: any, depth: number, format: string, name: string) {
+        if (obj) {
+            var props = Object.getOwnPropertyNames(obj);
+            var indent = '  ';
+            var str = '';
+
+            if (format === 'module') {
+                for (var i = 0; i < depth; i++) { str += indent }
+                str += 'module ' + name + ' {\n';
+            }
+
+            props.forEach(function (prop) {
+                var infoType = obj[prop].constructor.name;
+                var isClass = obj[prop] instanceof ClassInfo;
+                for (var i = 0; i <= depth; i++) { str += indent }
+
+                if (format === 'module') {
+                    if (infoType === 'FunctionInfo') {
+                        str += 'export function ';
+                        str += prop + obj[prop].toTypeString() + ' { }\n';
+                    } else {
+                        str += 'export var ';
+                        str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                    }
+                } else if (format === 'class') {
+                    if (infoType === 'FunctionInfo') {
+                        str += prop + obj[prop].toTypeString() + ' { }\n';
+                    } else {
+                        str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                    }
+                }
+
+                if (obj[prop].attributes && !isClass) {
+                    str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
+                }
+            });
+
+            if (format === 'module') {
+                for (var i = 0; i < depth; i++) { str += indent }
+                str += '}\n';
+            }
+
+            return str;
+        }
+        return '';
+    }
+
+    export function toTypeScript(obj: any, maxIterations?: number): string {
+        var str = '';
+        var hier = inspect(obj, maxIterations);
+        if (hier) {
+            str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
+
+            for (var c in hier.classes) {
+                var cl = hier.classes[c];
                 str += 'class ' + cl.type + ' {\n';
                 str += '  constructor' + cl.toConstructorString() + ' { }\n';
                 if (cl.attributes) {
@@ -258,9 +270,7 @@ module TypeScriptUtil {
                 }
                 str += '}\n';
             }
-
-            return str;
         }
-        return null;
+        return str;
     }
 }
