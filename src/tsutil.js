@@ -111,7 +111,7 @@ var TypeScriptUtil;
                 if(prop in obj) {
                     try  {
                         var val = obj[prop];
-                        if(typeof val === 'object') {
+                        if(typeof val === 'object' && val !== window) {
                             if(val) {
                                 var doneIndex = objectsDone.indexOf(val);
                                 if(doneIndex === -1) {
@@ -202,14 +202,14 @@ var TypeScriptUtil;
                         str += prop + obj[prop].toTypeString() + ' { }\n';
                     } else {
                         str += 'export var ';
-                        str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                        str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
                     }
                 } else {
                     if(format === 'class') {
                         if(infoType === 'FunctionInfo') {
                             str += prop + obj[prop].toTypeString() + ' { }\n';
                         } else {
-                            str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                            str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
                         }
                     }
                 }
