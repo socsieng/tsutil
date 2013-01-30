@@ -105,6 +105,7 @@ var TypeScriptUtil;
             }
             return arr;
         }
+        var anonCount = 0;
         function parseObject(obj, hierarchy, depth) {
             var props = getAllProperties(obj);
             props.forEach(function (prop) {
@@ -128,14 +129,22 @@ var TypeScriptUtil;
                                         typesDone.push(ti);
                                     } else {
                                         if(val.constructor && val.constructor.name !== 'Object') {
-                                            ti = new ClassInfo(val.constructor, val.constructor.name);
                                             if(!classes[val.constructor.toString()]) {
+                                                ti = new ClassInfo(val.constructor, val.constructor.name);
+                                                typesDone.push(ti);
+                                                if(!(ti.name && ti.type)) {
+                                                    var existingFunctionIndex = objectsDone.indexOf(val);
+                                                    var existingFunction = typesDone[existingFunctionIndex];
+                                                    ti.name = ti.type = existingFunction && existingFunction.name ? existingFunction.name : 'Anon_' + (++anonCount);
+                                                }
                                                 classes[val.constructor.toString()] = ti;
+                                            } else {
+                                                typesDone.push(null);
                                             }
                                         } else {
                                             ti = new TypeInfo('any', prop, val);
+                                            typesDone.push(ti);
                                         }
-                                        typesDone.push(ti);
                                         hierarchy[prop] = ti;
                                         if(depth < maxIterations) {
                                             var attr = {
@@ -193,28 +202,30 @@ var TypeScriptUtil;
                 str += getIndent(depth) + 'module ' + name + ' {\n';
             }
             props.forEach(function (prop) {
-                var infoType = obj[prop].constructor.name;
-                var isClass = obj[prop] instanceof ClassInfo;
-                str += getIndent(depth + 1);
-                if(format === 'module') {
-                    if(infoType === 'FunctionInfo') {
-                        str += 'export function ';
-                        str += prop + obj[prop].toTypeString() + ' { }\n';
-                    } else {
-                        str += 'export var ';
-                        str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
-                    }
-                } else {
-                    if(format === 'class') {
+                if(obj[prop]) {
+                    var infoType = obj[prop].constructor.name;
+                    var isClass = obj[prop] instanceof ClassInfo;
+                    str += getIndent(depth + 1);
+                    if(format === 'module') {
                         if(infoType === 'FunctionInfo') {
+                            str += 'export function ';
                             str += prop + obj[prop].toTypeString() + ' { }\n';
                         } else {
+                            str += 'export var ';
                             str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
                         }
+                    } else {
+                        if(format === 'class') {
+                            if(infoType === 'FunctionInfo') {
+                                str += prop + obj[prop].toTypeString() + ' { }\n';
+                            } else {
+                                str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                            }
+                        }
                     }
-                }
-                if(obj[prop].attributes && !isClass) {
-                    str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
+                    if(obj[prop].attributes && !isClass) {
+                        str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
+                    }
                 }
             });
             if(format === 'module') {
