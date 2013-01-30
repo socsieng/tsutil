@@ -81,8 +81,17 @@ var TypeScriptUtil;
         return ClassInfo;
     })(FunctionInfo);    
     var defaults = {
-        maxIterations: 3
+        maxIterations: 3,
+        indent: '  '
     };
+    function getIndent(level, characters) {
+        characters = typeof characters === 'undefined' ? defaults.indent : characters;
+        var str = '';
+        for(var i = 0; i < level; i++) {
+            str += characters;
+        }
+        return str;
+    }
     function inspect(obj, maxIterations) {
         var objectsDone = [];
         var typesDone = [];
@@ -181,17 +190,12 @@ var TypeScriptUtil;
             var indent = '  ';
             var str = '';
             if(format === 'module') {
-                for(var i = 0; i < depth; i++) {
-                    str += indent;
-                }
-                str += 'module ' + name + ' {\n';
+                str += getIndent(depth) + 'module ' + name + ' {\n';
             }
             props.forEach(function (prop) {
                 var infoType = obj[prop].constructor.name;
                 var isClass = obj[prop] instanceof ClassInfo;
-                for(var i = 0; i <= depth; i++) {
-                    str += indent;
-                }
+                str += getIndent(depth + 1);
                 if(format === 'module') {
                     if(infoType === 'FunctionInfo') {
                         str += 'export function ';
@@ -214,10 +218,7 @@ var TypeScriptUtil;
                 }
             });
             if(format === 'module') {
-                for(var i = 0; i < depth; i++) {
-                    str += indent;
-                }
-                str += '}\n';
+                str += getIndent(depth) + '}\n';
             }
             return str;
         }
@@ -231,7 +232,7 @@ var TypeScriptUtil;
             for(var c in hier.classes) {
                 var cl = hier.classes[c];
                 str += 'class ' + cl.type + ' {\n';
-                str += '  constructor' + cl.toConstructorString() + ' { }\n';
+                str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
                 if(cl.attributes) {
                     str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
                 }
