@@ -33,6 +33,7 @@ module TypeScriptUtil {
         name: string;
         parameters: TypeInfo[];
         returnType: string;
+        isConstructor: bool;
 
         constructor(fn: Function, name?: string);
         constructor(functionSource: string, name?: string);
@@ -96,6 +97,170 @@ module TypeScriptUtil {
 
         toConstructorString(): string {
             return super.toTypeString();
+        }
+    }
+
+    class ObjectInspector {
+        static DEFAULT_MAX_DEPTH: number = 3;
+        obj: any;
+        maxDepth: number;
+        allInstances: any[];
+        allTypes: TypeInfo[];
+        processedInstances: any[];
+        itemIndex: number;
+
+        constructor(obj: any, maxDepth?: number) {
+            this.obj = obj;
+            this.maxDepth = typeof maxDepth === 'undefined' ? ObjectInspector.DEFAULT_MAX_DEPTH : maxDepth;
+            this.allInstances = [];
+            this.allTypes = [];
+            this.processedInstances = [];
+            this.itemIndex = 0;
+        }
+
+        getAllProperties(obj: any): string[] {
+            if (obj && typeof obj === 'object') {
+                return Object.getOwnPropertyNames(obj);
+            }
+            return [];
+            //var arr: string[] = [];
+            //for (var i in obj) {
+            //    arr.push(i);
+            //}
+            //return arr;
+        }
+
+        private getItemId(): string {
+            return 'i' + (++this.itemIndex);
+        }
+
+        private getTypeString(value: any, isArray?: bool): string {
+            if (value) {
+                var type = typeof value;
+                switch (type) {
+                    case 'object':
+                        if (Array.isArray(value)) {
+                            return 'any[]';
+                        }
+                        return 'any';
+                    case 'boolean':
+                        return 'bool';
+                    case 'function':
+                        return 'Function';
+                    default:
+                        return type;
+                }
+            }
+            return 'any';
+        }
+
+        private isIgnored(obj: any): bool {
+            var ignored: any[] = [Object, String, Number, Boolean, Window, window];
+            return ignored.indexOf(obj) !== -1;
+        }
+
+        // find all unique object instances
+        private extractInstances(obj: any, depth: number) {
+            var self = this;
+            if (!self.isIgnored(obj) && self.allInstances.indexOf(obj) === -1) {
+                self.allInstances.push(obj);
+
+                if (obj) {
+                    if (depth < self.maxDepth || self.maxDepth === 0) {
+                        var props = self.getAllProperties(obj);
+
+                        props.forEach(function (prop: string) {
+                            var val = obj[prop];
+                            self.extractInstances(val, depth + 1);
+                        });
+                    }
+
+                    // inheritence
+                    if (obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
+                        self.extractInstances(obj.constructor, 0);
+                    }
+                    if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
+                        self.extractInstances(obj.__proto__, 0);
+                    }
+                }
+            }
+        }
+
+        private constructTypeInfo(obj: any): TypeInfo {
+            if (obj) {
+                var type = this.getTypeString(obj);
+                switch (type) {
+                    case 'any[]':
+                        if (obj.length == 0) {
+                            return new ArrayInfo('any', null, obj);
+                        }
+                        // TODO: iterate through array to identify all types
+                        return new ArrayInfo(this.getTypeString(obj[0]), null, obj);
+                    case 'object':
+                        return new TypeInfo('any', null, obj);
+                    case 'Function':
+                        return new FunctionInfo(obj, null);
+                    default:
+                        return new TypeInfo(type, null, obj);
+                }
+            }
+            return new TypeInfo('any', null, obj);
+        }
+
+        private getTypeInfo(obj: any): TypeInfo {
+            var index = this.allInstances.indexOf(obj);
+            if (index != -1) {
+                return this.allTypes[index];
+            }
+            throw new Error('object couldn\'t be found for type: ' + typeof(obj));
+        }
+
+        private inspectInternal(obj: any, depth: number, infoContainer: any) {
+            var self = this;
+            if (!self.isIgnored(obj) && self.processedInstances.indexOf(obj) === -1) {
+                self.processedInstances.push(obj);
+
+                if (obj) {
+                    if (depth < self.maxDepth || self.maxDepth === 0) {
+                        var props = self.getAllProperties(obj);
+
+                        props.forEach(function (prop: string) {
+                            var val = obj[prop];
+                            var typeInfo = self.getTypeInfo(val);
+
+                            infoContainer[prop] = typeInfo;
+
+                            if (val && self.getAllProperties(val).length) {
+                                typeInfo.attributes = {};
+                                self.inspectInternal(val, depth + 1, typeInfo.attributes);
+                            }
+                        });
+                    }
+
+                    // inheritence
+                    if (obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
+                        // obj is an instance of a class
+                        var typeInfo: FunctionInfo = <FunctionInfo>self.getTypeInfo(obj.constructor);
+                        typeInfo.isConstructor = true;
+                    }
+                    if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
+                        //self.extractInstances(obj.__proto__, 0);
+                    }
+                }
+            }
+        }
+
+        inspect(): any {
+            var self = this;
+            self.extractInstances(this.obj, 0);
+            self.allTypes = self.allInstances.map(function(item) {
+                return self.constructTypeInfo(item);
+            });
+            var structure = {};
+            self.inspectInternal(self.obj, 0, structure);
+            return {
+                structure: structure
+            };
         }
     }
 
@@ -301,7 +466,7 @@ module TypeScriptUtil {
         return '';
     }
 
-    export function toTypeScript(obj: any, maxIterations?: number): string {
+    export function toTypeScript1(obj: any, maxIterations?: number): string {
         var str = '';
         var hier = inspect(obj, maxIterations);
         if (hier) {
@@ -319,4 +484,26 @@ module TypeScriptUtil {
         }
         return str;
     }
+
+    export function toTypeScript2(obj: any, maxIterations?: number): string {
+        var str = '';
+        var insp = new ObjectInspector(obj, maxIterations);
+        var hier = insp.inspect();
+        if (hier) {
+            str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
+
+            for (var c in hier.classes) {
+                var cl = hier.classes[c];
+                str += 'class ' + cl.type + ' {\n';
+                str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
+                if (cl.attributes) {
+                    str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
+                }
+                str += '}\n';
+            }
+        }
+        return str;
+    }
+
+    export var toTypeScript = toTypeScript2;
 }

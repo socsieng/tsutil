@@ -80,6 +80,160 @@ var TypeScriptUtil;
         };
         return ClassInfo;
     })(FunctionInfo);    
+    var ObjectInspector = (function () {
+        function ObjectInspector(obj, maxDepth) {
+            this.obj = obj;
+            this.maxDepth = typeof maxDepth === 'undefined' ? ObjectInspector.DEFAULT_MAX_DEPTH : maxDepth;
+            this.allInstances = [];
+            this.allTypes = [];
+            this.processedInstances = [];
+            this.itemIndex = 0;
+        }
+        ObjectInspector.DEFAULT_MAX_DEPTH = 3;
+        ObjectInspector.prototype.getAllProperties = function (obj) {
+            if(obj && typeof obj === 'object') {
+                return Object.getOwnPropertyNames(obj);
+            }
+            return [];
+        };
+        ObjectInspector.prototype.getItemId = function () {
+            return 'i' + (++this.itemIndex);
+        };
+        ObjectInspector.prototype.getTypeString = function (value, isArray) {
+            if(value) {
+                var type = typeof value;
+                switch(type) {
+                    case 'object': {
+                        if(Array.isArray(value)) {
+                            return 'any[]';
+                        }
+                        return 'any';
+
+                    }
+                    case 'boolean': {
+                        return 'bool';
+
+                    }
+                    case 'function': {
+                        return 'Function';
+
+                    }
+                    default: {
+                        return type;
+
+                    }
+                }
+            }
+            return 'any';
+        };
+        ObjectInspector.prototype.isIgnored = function (obj) {
+            var ignored = [
+                Object, 
+                String, 
+                Number, 
+                Boolean, 
+                Window, 
+                window
+            ];
+            return ignored.indexOf(obj) !== -1;
+        };
+        ObjectInspector.prototype.extractInstances = function (obj, depth) {
+            var self = this;
+            if(!self.isIgnored(obj) && self.allInstances.indexOf(obj) === -1) {
+                self.allInstances.push(obj);
+                if(obj) {
+                    if(depth < self.maxDepth || self.maxDepth === 0) {
+                        var props = self.getAllProperties(obj);
+                        props.forEach(function (prop) {
+                            var val = obj[prop];
+                            self.extractInstances(val, depth + 1);
+                        });
+                    }
+                    if(obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
+                        self.extractInstances(obj.constructor, 0);
+                    }
+                    if(obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
+                        self.extractInstances(obj.__proto__, 0);
+                    }
+                }
+            }
+        };
+        ObjectInspector.prototype.constructTypeInfo = function (obj) {
+            if(obj) {
+                var type = this.getTypeString(obj);
+                switch(type) {
+                    case 'any[]': {
+                        if(obj.length == 0) {
+                            return new ArrayInfo('any', null, obj);
+                        }
+                        return new ArrayInfo(this.getTypeString(obj[0]), null, obj);
+
+                    }
+                    case 'object': {
+                        return new TypeInfo('any', null, obj);
+
+                    }
+                    case 'Function': {
+                        return new FunctionInfo(obj, null);
+
+                    }
+                    default: {
+                        return new TypeInfo(type, null, obj);
+
+                    }
+                }
+            }
+            return new TypeInfo('any', null, obj);
+        };
+        ObjectInspector.prototype.getTypeInfo = function (obj) {
+            var index = this.allInstances.indexOf(obj);
+            if(index != -1) {
+                return this.allTypes[index];
+            }
+            throw new Error('object couldn\'t be found for type: ' + typeof (obj));
+        };
+        ObjectInspector.prototype.inspectInternal = function (obj, depth, infoContainer) {
+            var self = this;
+            if(!self.isIgnored(obj) && self.processedInstances.indexOf(obj) === -1) {
+                self.processedInstances.push(obj);
+                if(obj) {
+                    if(depth < self.maxDepth || self.maxDepth === 0) {
+                        var props = self.getAllProperties(obj);
+                        props.forEach(function (prop) {
+                            var val = obj[prop];
+                            var typeInfo = self.getTypeInfo(val);
+                            infoContainer[prop] = typeInfo;
+                            if(val && self.getAllProperties(val).length) {
+                                typeInfo.attributes = {
+                                };
+                                self.inspectInternal(val, depth + 1, typeInfo.attributes);
+                            }
+                        });
+                    }
+                    if(obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
+                        var typeInfo = self.getTypeInfo(obj.constructor);
+                        typeInfo.isConstructor = true;
+                    }
+                    if(obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
+                    }
+                }
+            }
+        };
+        ObjectInspector.prototype.inspect = function () {
+            var self = this;
+            self.extractInstances(this.obj, 0);
+            self.allTypes = self.allInstances.map(function (item) {
+                return self.constructTypeInfo(item);
+            });
+            var structure = {
+            };
+            self.inspectInternal(self.obj, 0, structure);
+            return {
+                structure: structure
+            };
+        };
+        return ObjectInspector;
+    })();    
     var defaults = {
         maxIterations: 3,
         indent: '  '
@@ -266,7 +420,7 @@ var TypeScriptUtil;
         }
         return '';
     }
-    function toTypeScript(obj, maxIterations) {
+    function toTypeScript1(obj, maxIterations) {
         var str = '';
         var hier = inspect(obj, maxIterations);
         if(hier) {
@@ -283,5 +437,25 @@ var TypeScriptUtil;
         }
         return str;
     }
-    TypeScriptUtil.toTypeScript = toTypeScript;
+    TypeScriptUtil.toTypeScript1 = toTypeScript1;
+    function toTypeScript2(obj, maxIterations) {
+        var str = '';
+        var insp = new ObjectInspector(obj, maxIterations);
+        var hier = insp.inspect();
+        if(hier) {
+            str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
+            for(var c in hier.classes) {
+                var cl = hier.classes[c];
+                str += 'class ' + cl.type + ' {\n';
+                str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
+                if(cl.attributes) {
+                    str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
+                }
+                str += '}\n';
+            }
+        }
+        return str;
+    }
+    TypeScriptUtil.toTypeScript2 = toTypeScript2;
+    TypeScriptUtil.toTypeScript = toTypeScript2;
 })(TypeScriptUtil || (TypeScriptUtil = {}));
