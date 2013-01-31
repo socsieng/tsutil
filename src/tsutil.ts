@@ -6,6 +6,7 @@ module TypeScriptUtil {
         value: any;
         ctor: Function;
         attributes: any;
+        instanceOf: TypeInfo;
 
         constructor(type: string, name: string, value?: any) {
             this.type = type;
@@ -14,7 +15,7 @@ module TypeScriptUtil {
         }
 
         toTypeString(): string {
-            return this.type;
+            return this.instanceOf ? this.instanceOf.type : this.type;
         }
     }
 
@@ -178,11 +179,12 @@ module TypeScriptUtil {
                     }
 
                     // inheritence
-                    if (obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
-                        if (self.allClasses.indexOf(obj.constructor) === -1) {
-                            self.allClasses.push(obj.constructor);
+                    var instanceOf = self.getConstructor(obj);
+                    if (instanceOf) {
+                        if (self.allClasses.indexOf(instanceOf) === -1) {
+                            self.allClasses.push(instanceOf);
                         }
-                        self.extractInstances(obj.constructor, 0);
+                        self.extractInstances(instanceOf, 0);
                     }
                     if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
                         self.extractInstances(obj.__proto__, 0);
@@ -235,6 +237,12 @@ module TypeScriptUtil {
                         props.forEach(function (prop: string) {
                             var val = obj[prop];
                             var typeInfo = self.getTypeInfo(val);
+                            var ctor = self.getConstructor(val);
+
+                            if (ctor) {
+                                typeInfo.instanceOf = self.getTypeInfo(ctor);
+                                typeInfo = typeInfo.instanceOf;
+                            }
 
                             infoContainer[prop] = typeInfo;
 
@@ -246,16 +254,29 @@ module TypeScriptUtil {
                     }
 
                     // inheritence
-                    if (obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
+                    var objTypeInfo = self.getTypeInfo(obj);
+                    var ctor = self.getConstructor(obj);
+                    if (ctor) {
                         // obj is an instance of a class
-                        var typeInfo: FunctionInfo = <FunctionInfo>self.getTypeInfo(obj.constructor);
-                        typeInfo.isConstructor = true;
-                    }
-                    if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
-                        //self.extractInstances(obj.__proto__, 0);
+                        var ctorTypeInfo: FunctionInfo = <FunctionInfo>self.getTypeInfo(ctor);
+                        ctorTypeInfo.isConstructor = true;
+
+                        objTypeInfo.instanceOf = self.getTypeInfo(ctor);
+
+                        var baseCtor = self.getConstructor(obj.__proto__.__proto__);
+                        if (baseCtor) {
+                            ctorTypeInfo.instanceOf = self.getTypeInfo(baseCtor);
+                        }
                     }
                 }
             }
+        }
+
+        private getConstructor(obj: any): Function {
+            if (obj && obj.constructor !== Object && !this.isIgnored(obj.constructor)) {
+                return obj.constructor;
+            }
+            return null;
         }
 
         inspect(): any {
@@ -462,7 +483,7 @@ module TypeScriptUtil {
                         }
                     }
 
-                    if (obj[prop].attributes && !isClass) {
+                    if (obj[prop].attributes && !isClass && !obj[prop].instanceOf) {
                         str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
                     }
                 }
@@ -504,7 +525,11 @@ module TypeScriptUtil {
             str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
 
             hier.classes.forEach(function (cl) {
-                str += 'class ' + cl.type + ' {\n';
+                str += 'class ' + cl.type;
+                if (cl.instanceOf) {
+                    str += ' extends ' + cl.instanceOf.type;
+                }
+                str += ' {\n';
                 str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
                 if (cl.attributes) {
                     str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');

@@ -12,7 +12,7 @@ var TypeScriptUtil;
             this.value = value;
         }
         TypeInfo.prototype.toTypeString = function () {
-            return this.type;
+            return this.instanceOf ? this.instanceOf.type : this.type;
         };
         return TypeInfo;
     })();    
@@ -152,11 +152,12 @@ var TypeScriptUtil;
                             self.extractInstances(val, depth + 1);
                         });
                     }
-                    if(obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
-                        if(self.allClasses.indexOf(obj.constructor) === -1) {
-                            self.allClasses.push(obj.constructor);
+                    var instanceOf = self.getConstructor(obj);
+                    if(instanceOf) {
+                        if(self.allClasses.indexOf(instanceOf) === -1) {
+                            self.allClasses.push(instanceOf);
                         }
-                        self.extractInstances(obj.constructor, 0);
+                        self.extractInstances(instanceOf, 0);
                     }
                     if(obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
                         self.extractInstances(obj.__proto__, 0);
@@ -211,6 +212,11 @@ var TypeScriptUtil;
                         props.forEach(function (prop) {
                             var val = obj[prop];
                             var typeInfo = self.getTypeInfo(val);
+                            var ctor = self.getConstructor(val);
+                            if(ctor) {
+                                typeInfo.instanceOf = self.getTypeInfo(ctor);
+                                typeInfo = typeInfo.instanceOf;
+                            }
                             infoContainer[prop] = typeInfo;
                             if(val && self.getAllProperties(val).length) {
                                 typeInfo.attributes = {
@@ -219,14 +225,25 @@ var TypeScriptUtil;
                             }
                         });
                     }
-                    if(obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
-                        var typeInfo = self.getTypeInfo(obj.constructor);
-                        typeInfo.isConstructor = true;
-                    }
-                    if(obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
+                    var objTypeInfo = self.getTypeInfo(obj);
+                    var ctor = self.getConstructor(obj);
+                    if(ctor) {
+                        var ctorTypeInfo = self.getTypeInfo(ctor);
+                        ctorTypeInfo.isConstructor = true;
+                        objTypeInfo.instanceOf = self.getTypeInfo(ctor);
+                        var baseCtor = self.getConstructor(obj.__proto__.__proto__);
+                        if(baseCtor) {
+                            ctorTypeInfo.instanceOf = self.getTypeInfo(baseCtor);
+                        }
                     }
                 }
             }
+        };
+        ObjectInspector.prototype.getConstructor = function (obj) {
+            if(obj && obj.constructor !== Object && !this.isIgnored(obj.constructor)) {
+                return obj.constructor;
+            }
+            return null;
         };
         ObjectInspector.prototype.inspect = function () {
             var self = this;
@@ -420,7 +437,7 @@ var TypeScriptUtil;
                             }
                         }
                     }
-                    if(obj[prop].attributes && !isClass) {
+                    if(obj[prop].attributes && !isClass && !obj[prop].instanceOf) {
                         str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
                     }
                 }
@@ -457,7 +474,11 @@ var TypeScriptUtil;
         if(hier) {
             str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
             hier.classes.forEach(function (cl) {
-                str += 'class ' + cl.type + ' {\n';
+                str += 'class ' + cl.type;
+                if(cl.instanceOf) {
+                    str += ' extends ' + cl.instanceOf.type;
+                }
+                str += ' {\n';
                 str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
                 if(cl.attributes) {
                     str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');

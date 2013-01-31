@@ -177,11 +177,23 @@ describe('TypeScriptUtil toTypeScript function', function () {
             car: new Car('My car'),
             boat: new Boat('My boat')
         };
+        var output = TypeScriptUtil.toTypeScript(stuff, 0);
+        console.log(output);
         it('Should list classes', function () {
-            var output = TypeScriptUtil.toTypeScript(stuff, 0);
-            console.log(output);
             expect(output).toContain('class Car');
             expect(output).toContain('class Boat');
+        });
+        it('car should be of type Car', function () {
+            expect(output).toContain('car: Car');
+        });
+        it('boat should be of type Boat', function () {
+            expect(output).toContain('boat: Boat');
+        });
+        it('Car should extend Vehicle', function () {
+            expect(output).toContain('class Car extends Vehicle');
+        });
+        it('Boat should extend Vehicle', function () {
+            expect(output).toContain('class Boat extends Vehicle');
         });
     });
 });
