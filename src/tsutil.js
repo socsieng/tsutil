@@ -120,7 +120,7 @@ var TypeScriptUtil;
                                     objectsDone.push(val);
                                     if(Array.isArray(val)) {
                                         if(val.length > 0) {
-                                            ti = new ArrayInfo(typeof val[0], prop, val);
+                                            ti = new ArrayInfo(typeof val[0] === 'object' ? 'any' : typeof val[0], prop, val);
                                             hierarchy[prop] = ti;
                                         } else {
                                             ti = new ArrayInfo('any', prop);

@@ -146,7 +146,7 @@ module TypeScriptUtil {
 
                                     if (Array.isArray(val)) {
                                         if (val.length > 0) {
-                                            ti = new ArrayInfo(typeof val[0], prop, val); // TODO: iterate through all items to infer type
+                                            ti = new ArrayInfo(typeof val[0] === 'object' ? 'any' : typeof val[0], prop, val); // TODO: iterate through all items to infer type
                                             hierarchy[prop] = ti;
                                         } else {
                                             ti = new ArrayInfo('any', prop);
