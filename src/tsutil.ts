@@ -111,6 +111,31 @@ module TypeScriptUtil {
         return str;
     }
 
+    function getTypeString(value: any): string {
+        if (value) {
+            var type = typeof value;
+            switch (type) {
+                case 'object':
+                    if (Array.isArray(value)) {
+                        if (value.length == 0) {
+                            return 'any[]';
+                        }
+
+                        // TODO: inspect all elements of the array
+                        return getTypeString(value[0]) + '[]';
+                    }
+                    return 'any';
+                case 'boolean':
+                    return 'bool';
+                case 'function':
+                    return 'Function';
+                default:
+                    return type;
+            }
+        }
+        return 'any';
+    }
+
     export function inspect(obj: any, maxIterations?: number): any {
         var objectsDone = [];
         var typesDone = [];
@@ -136,6 +161,7 @@ module TypeScriptUtil {
                 if (prop in obj) {
                     try {
                         var val = obj[prop];
+                        var type = getTypeString(val);
 
                         if (typeof val === 'object' && val !== window) { // ignore the window object
                             if (val) {
@@ -146,7 +172,7 @@ module TypeScriptUtil {
 
                                     if (Array.isArray(val)) {
                                         if (val.length > 0) {
-                                            ti = new ArrayInfo(typeof val[0] === 'object' ? 'any' : typeof val[0], prop, val); // TODO: iterate through all items to infer type
+                                            ti = new ArrayInfo(getTypeString(val[0]), prop, val); // TODO: iterate through all items to infer type
                                             hierarchy[prop] = ti;
                                         } else {
                                             ti = new ArrayInfo('any', prop);
@@ -175,7 +201,7 @@ module TypeScriptUtil {
 
                                             // TODO: traverse base classes
                                         } else {
-                                            ti = new TypeInfo('any', prop, val);
+                                            ti = new TypeInfo(type, prop, val);
                                             typesDone.push(ti);
                                         }
 
@@ -197,16 +223,16 @@ module TypeScriptUtil {
                                     hierarchy[prop] = typesDone[doneIndex];
                                 }
                             } else {
-                                hierarchy[prop] = new TypeInfo('any', prop);
+                                hierarchy[prop] = new TypeInfo(type, prop);
                             }
                         } else if (typeof val === 'function') {
                             var fInfo = new FunctionInfo(val);
                             fInfo.name = fInfo.name || prop;
                             hierarchy[prop] = fInfo;
                         } else if (typeof val === 'boolean') {
-                            hierarchy[prop] = new TypeInfo('bool', prop, val);
+                            hierarchy[prop] = new TypeInfo(type, prop, val);
                         } else {
-                            hierarchy[prop] = new TypeInfo(typeof val, prop, val);
+                            hierarchy[prop] = new TypeInfo(type, prop, val);
                         }
                     } catch (ex) {
                         console.log(ex);

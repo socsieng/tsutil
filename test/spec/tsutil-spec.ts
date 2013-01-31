@@ -62,4 +62,5 @@ describe('TypeScriptUtil toTypeScript function', function () {
         it('Should correctly handle empty arrays', function () {
             expect(output).toContain('propEmpty: any[]');
         });
-    });});
+    });
+});
