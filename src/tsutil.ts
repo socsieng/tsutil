@@ -106,6 +106,7 @@ module TypeScriptUtil {
         maxDepth: number;
         allInstances: any[];
         allTypes: TypeInfo[];
+        allClasses: any[];
         processedInstances: any[];
         itemIndex: number;
 
@@ -114,6 +115,7 @@ module TypeScriptUtil {
             this.maxDepth = typeof maxDepth === 'undefined' ? ObjectInspector.DEFAULT_MAX_DEPTH : maxDepth;
             this.allInstances = [];
             this.allTypes = [];
+            this.allClasses = [];
             this.processedInstances = [];
             this.itemIndex = 0;
         }
@@ -155,7 +157,7 @@ module TypeScriptUtil {
         }
 
         private isIgnored(obj: any): bool {
-            var ignored: any[] = [Object, String, Number, Boolean, Window, window];
+            var ignored: any[] = [Object, String, Number, Boolean, Function, Array, Window, window];
             return ignored.indexOf(obj) !== -1;
         }
 
@@ -177,6 +179,9 @@ module TypeScriptUtil {
 
                     // inheritence
                     if (obj.constructor !== Object && !self.isIgnored(obj.constructor)) {
+                        if (self.allClasses.indexOf(obj.constructor) === -1) {
+                            self.allClasses.push(obj.constructor);
+                        }
                         self.extractInstances(obj.constructor, 0);
                     }
                     if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
@@ -199,6 +204,9 @@ module TypeScriptUtil {
                     case 'object':
                         return new TypeInfo('any', null, obj);
                     case 'Function':
+                        if (this.allClasses.indexOf(obj) !== -1) {
+                            return new ClassInfo(obj, obj.name);
+                        }
                         return new FunctionInfo(obj, null);
                     default:
                         return new TypeInfo(type, null, obj);
@@ -259,7 +267,10 @@ module TypeScriptUtil {
             var structure = {};
             self.inspectInternal(self.obj, 0, structure);
             return {
-                structure: structure
+                structure: structure,
+                classes: <any[]>self.allClasses.map(function (item) {
+                    return self.getTypeInfo(item);
+                })
             };
         }
     }
@@ -492,15 +503,14 @@ module TypeScriptUtil {
         if (hier) {
             str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
 
-            for (var c in hier.classes) {
-                var cl = hier.classes[c];
+            hier.classes.forEach(function (cl) {
                 str += 'class ' + cl.type + ' {\n';
                 str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
                 if (cl.attributes) {
                     str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
                 }
                 str += '}\n';
-            }
+            });
         }
         return str;
     }

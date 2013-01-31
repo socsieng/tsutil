@@ -1,6 +1,27 @@
 /// <reference path="../lib/jasmine.d.ts" />
 /// <reference path="../../src/tsutil.ts" />
 
+class Vehicle {
+    name: string;
+    constructor(name: string) {
+        this.name = name;
+    }
+}
+
+class Car extends Vehicle {
+    name: string;
+    constructor(name: string) {
+        super(name);
+    }
+}
+
+class Boat extends Vehicle {
+    name: string;
+    constructor(name: string) {
+        super(name);
+    }
+}
+
 describe('TypeScriptUtil toTypeScript function', function () {
     describe('Primitives', function () {
         var primitives = {
@@ -152,6 +173,20 @@ describe('TypeScriptUtil toTypeScript function', function () {
             expect(output).toContain('child: any');
             expect(output).toContain('childProperty: string');
             expect(output).toContain('parent: any');
+        });
+    });
+
+    describe('Inheritence', function () {
+        var stuff = {
+            car: new Car('My car'),
+            boat: new Boat('My boat')
+        }
+
+        it('Should list classes', function () {
+            var output = TypeScriptUtil.toTypeScript(stuff, 0);
+            console.log(output);
+            expect(output).toContain('class Car');
+            expect(output).toContain('class Boat');
         });
     });
 });

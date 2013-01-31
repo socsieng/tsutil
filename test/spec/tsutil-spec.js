@@ -1,3 +1,28 @@
+var __extends = this.__extends || function (d, b) {
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
+var Vehicle = (function () {
+    function Vehicle(name) {
+        this.name = name;
+    }
+    return Vehicle;
+})();
+var Car = (function (_super) {
+    __extends(Car, _super);
+    function Car(name) {
+        _super.call(this, name);
+    }
+    return Car;
+})(Vehicle);
+var Boat = (function (_super) {
+    __extends(Boat, _super);
+    function Boat(name) {
+        _super.call(this, name);
+    }
+    return Boat;
+})(Vehicle);
 describe('TypeScriptUtil toTypeScript function', function () {
     describe('Primitives', function () {
         var primitives = {
@@ -145,6 +170,18 @@ describe('TypeScriptUtil toTypeScript function', function () {
             expect(output).toContain('child: any');
             expect(output).toContain('childProperty: string');
             expect(output).toContain('parent: any');
+        });
+    });
+    describe('Inheritence', function () {
+        var stuff = {
+            car: new Car('My car'),
+            boat: new Boat('My boat')
+        };
+        it('Should list classes', function () {
+            var output = TypeScriptUtil.toTypeScript(stuff, 0);
+            console.log(output);
+            expect(output).toContain('class Car');
+            expect(output).toContain('class Boat');
         });
     });
 });
