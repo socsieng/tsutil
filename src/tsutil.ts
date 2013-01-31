@@ -141,7 +141,7 @@ module TypeScriptUtil {
         var typesDone = [];
         var classes: any = {};
 
-        maxIterations = maxIterations || defaults.maxIterations;
+        maxIterations = typeof maxIterations === 'undefined' ? defaults.maxIterations : maxIterations;
 
         function getAllProperties(obj: any): string[] {
             var arr = [];
@@ -207,7 +207,7 @@ module TypeScriptUtil {
 
                                         hierarchy[prop] = ti;
 
-                                        if (depth < maxIterations) {
+                                        if (depth + 1 < maxIterations || maxIterations === 0) {
                                             var attr = {};
                                             parseObject(val, attr, depth + 1);
 
