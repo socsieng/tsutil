@@ -122,8 +122,10 @@ module TypeScriptUtil {
         }
 
         getAllProperties(obj: any): string[] {
+            var self = this;
             if (obj && typeof obj === 'object') {
-                return Object.getOwnPropertyNames(obj);
+                var props = Object.getOwnPropertyNames(obj);
+                return props.filter(function (item) { return !self.isIgnoredProperty(item) });
             }
             return [];
             //var arr: string[] = [];
@@ -157,7 +159,12 @@ module TypeScriptUtil {
             return 'any';
         }
 
-        private isIgnored(obj: any): bool {
+        private isIgnoredProperty(prop: string): bool {
+            var ignored: string[] = ['constructor'];
+            return ignored.indexOf(prop) !== -1;
+        }
+
+        private isIgnoredValue(obj: any): bool {
             var ignored: any[] = [Object, String, Number, Boolean, Function, Array, Window, window];
             return ignored.indexOf(obj) !== -1;
         }
@@ -165,7 +172,7 @@ module TypeScriptUtil {
         // find all unique object instances
         private extractInstances(obj: any, depth: number) {
             var self = this;
-            if (!self.isIgnored(obj) && self.allInstances.indexOf(obj) === -1) {
+            if (!self.isIgnoredValue(obj) && self.allInstances.indexOf(obj) === -1) {
                 self.allInstances.push(obj);
 
                 if (obj) {
@@ -186,7 +193,7 @@ module TypeScriptUtil {
                         }
                         self.extractInstances(instanceOf, 0);
                     }
-                    if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnored(obj.__proto__.constructor)) {
+                    if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnoredValue(obj.__proto__.constructor)) {
                         self.extractInstances(obj.__proto__, 0);
                     }
                 }
@@ -227,7 +234,7 @@ module TypeScriptUtil {
 
         private inspectInternal(obj: any, depth: number, infoContainer: any) {
             var self = this;
-            if (!self.isIgnored(obj) && self.processedInstances.indexOf(obj) === -1) {
+            if (!self.isIgnoredValue(obj) && self.processedInstances.indexOf(obj) === -1) {
                 self.processedInstances.push(obj);
 
                 if (obj) {
@@ -247,7 +254,7 @@ module TypeScriptUtil {
                             infoContainer[prop] = typeInfo;
 
                             if (val && self.getAllProperties(val).length) {
-                                typeInfo.attributes = {};
+                                typeInfo.attributes = typeInfo.attributes || {};
                                 self.inspectInternal(val, depth + 1, typeInfo.attributes);
                             }
                         });
@@ -263,9 +270,20 @@ module TypeScriptUtil {
 
                         objTypeInfo.instanceOf = self.getTypeInfo(ctor);
 
-                        var baseCtor = self.getConstructor(obj.__proto__.__proto__);
+                        var baseCtor = self.getConstructor(obj.__proto__);
+                        var base = obj.__proto__;
+                        if (baseCtor === ctor) {
+                            baseCtor = self.getConstructor(obj.__proto__.__proto__);
+                            base = obj.__proto__.__proto__;
+                        }
+
                         if (baseCtor) {
-                            ctorTypeInfo.instanceOf = self.getTypeInfo(baseCtor);
+                            var baseTypeInfo = ctorTypeInfo.instanceOf = self.getTypeInfo(baseCtor);
+
+                            if (base && self.getAllProperties(base).length) {
+                                baseTypeInfo.attributes = baseTypeInfo.attributes || {};
+                                self.inspectInternal(base, depth + 1, baseTypeInfo.attributes);
+                            }
                         }
                     }
                 }
@@ -273,7 +291,7 @@ module TypeScriptUtil {
         }
 
         private getConstructor(obj: any): Function {
-            if (obj && obj.constructor !== Object && !this.isIgnored(obj.constructor)) {
+            if (obj && obj.constructor !== Object && !this.isIgnoredValue(obj.constructor)) {
                 return obj.constructor;
             }
             return null;

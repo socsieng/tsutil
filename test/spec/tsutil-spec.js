@@ -3,26 +3,34 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
-var Vehicle = (function () {
-    function Vehicle(name) {
-        this.name = name;
-    }
-    return Vehicle;
-})();
-var Car = (function (_super) {
-    __extends(Car, _super);
-    function Car(name) {
-        _super.call(this, name);
-    }
-    return Car;
-})(Vehicle);
-var Boat = (function (_super) {
-    __extends(Boat, _super);
-    function Boat(name) {
-        _super.call(this, name);
-    }
-    return Boat;
-})(Vehicle);
+var TestClasses;
+(function (TestClasses) {
+    var Vehicle = (function () {
+        function Vehicle(name) {
+            this.name = name;
+        }
+        Vehicle.prototype.move = function () {
+        };
+        return Vehicle;
+    })();
+    TestClasses.Vehicle = Vehicle;    
+    var Car = (function (_super) {
+        __extends(Car, _super);
+        function Car(name) {
+                _super.call(this, name);
+        }
+        return Car;
+    })(Vehicle);
+    TestClasses.Car = Car;    
+    var Boat = (function (_super) {
+        __extends(Boat, _super);
+        function Boat(name) {
+                _super.call(this, name);
+        }
+        return Boat;
+    })(Vehicle);
+    TestClasses.Boat = Boat;    
+})(TestClasses || (TestClasses = {}));
 describe('TypeScriptUtil toTypeScript function', function () {
     describe('Primitives', function () {
         var primitives = {
@@ -174,14 +182,20 @@ describe('TypeScriptUtil toTypeScript function', function () {
     });
     describe('Inheritence', function () {
         var stuff = {
-            car: new Car('My car'),
-            boat: new Boat('My boat')
+            car: new TestClasses.Car('My car'),
+            boat: new TestClasses.Boat('My boat')
         };
         var output = TypeScriptUtil.toTypeScript(stuff, 0);
         console.log(output);
         it('Should list classes', function () {
             expect(output).toContain('class Car');
             expect(output).toContain('class Boat');
+        });
+        it('Should have class Vehicle', function () {
+            expect(output).toContain('class Vehicle');
+        });
+        it('Vehicle should have the method "move"', function () {
+            expect(output).toContain('move(): void { }');
         });
         it('car should be of type Car', function () {
             expect(output).toContain('car: Car');
