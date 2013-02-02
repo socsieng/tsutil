@@ -89,6 +89,9 @@ var TypeScriptUtil;
             this.allClasses = [];
             this.processedInstances = [];
             this.itemIndex = 0;
+            this.structure = {
+            };
+            this.structure = [];
         }
         ObjectInspector.DEFAULT_MAX_DEPTH = 3;
         ObjectInspector.prototype.getAllProperties = function (obj) {
@@ -271,18 +274,96 @@ var TypeScriptUtil;
             self.allTypes = self.allInstances.map(function (item) {
                 return self.constructTypeInfo(item);
             });
-            var structure = {
+            var structure = this.structure = {
             };
             self.inspectInternal(self.obj, 0, structure);
+            var classes = this.classes = self.allClasses.map(function (item) {
+                return self.getTypeInfo(item);
+            });
             return {
                 structure: structure,
-                classes: self.allClasses.map(function (item) {
-                    return self.getTypeInfo(item);
-                })
+                classes: classes
             };
         };
         return ObjectInspector;
     })();    
+    var ObjectInspectorFormatter = (function () {
+        function ObjectInspectorFormatter(inspector, indent) {
+            this.inspector = inspector;
+            this.indent = indent || '  ';
+        }
+        ObjectInspectorFormatter.prototype.format = function () {
+            throw new Error('format method not implemented');
+        };
+        ObjectInspectorFormatter.prototype.formatString = function (format, params) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            var result = format;
+            if(args) {
+                args.forEach(function (arg, index) {
+                    var exp = new RegExp('\\{' + index + ':?([^\\}]*)\\}', 'g');
+                    result = result.replace(exp, arg);
+                });
+            }
+            return result;
+        };
+        ObjectInspectorFormatter.prototype.getIndent = function (level) {
+            var str = '';
+            for(var i = 0; i < level; i++) {
+                str += this.indent;
+            }
+            return str;
+        };
+        ObjectInspectorFormatter.prototype.toString = function () {
+            return this.format();
+        };
+        return ObjectInspectorFormatter;
+    })();    
+    var TypeScriptFormatter = (function (_super) {
+        __extends(TypeScriptFormatter, _super);
+        function TypeScriptFormatter(inspector, indent) {
+                _super.call(this, inspector, indent);
+        }
+        TypeScriptFormatter.prototype.format = function () {
+            var str = this.formatClasses();
+            return str;
+        };
+        TypeScriptFormatter.prototype.formatClasses = function () {
+            var self = this;
+            var str = '';
+            self.inspector.classes.forEach(function (cl) {
+                str += self.formatString('class {0}', cl.name);
+                if(cl.instanceOf) {
+                    str += self.formatString(' extends {0}', cl.instanceOf.name);
+                }
+                str += ' {\n';
+                str += self.formatString('{0}constructor {1} { }\n', self.indent, cl.toConstructorString());
+                if(cl.attributes) {
+                    str += self.formatClassMembers(cl.attributes);
+                }
+                str += '}\n';
+            });
+            return str;
+        };
+        TypeScriptFormatter.prototype.formatClassMembers = function (obj) {
+            var self = this;
+            var props = Object.getOwnPropertyNames(obj);
+            var str = '';
+            props.forEach(function (prop) {
+                if(obj[prop]) {
+                    var infoType = obj[prop].constructor.name;
+                    if(infoType === 'FunctionInfo') {
+                        str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
+                    } else {
+                        str += self.formatString('{0}{1}:{2};\n', self.indent, prop, obj[prop].toTypeString());
+                    }
+                    if(obj[prop].attributes && !obj[prop].instanceOf) {
+                    }
+                }
+            });
+            return str;
+        };
+        return TypeScriptFormatter;
+    })(ObjectInspectorFormatter);    
     var defaults = {
         maxIterations: 3,
         indent: '  '
@@ -491,20 +572,10 @@ var TypeScriptUtil;
         var str = '';
         var insp = new ObjectInspector(obj, maxIterations);
         var hier = insp.inspect();
+        var formatter = new TypeScriptFormatter(insp);
         if(hier) {
-            str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
-            hier.classes.forEach(function (cl) {
-                str += 'class ' + cl.type;
-                if(cl.instanceOf) {
-                    str += ' extends ' + cl.instanceOf.type;
-                }
-                str += ' {\n';
-                str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
-                if(cl.attributes) {
-                    str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
-                }
-                str += '}\n';
-            });
+            str += formatter.format();
+            str += toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
         }
         return str;
     }

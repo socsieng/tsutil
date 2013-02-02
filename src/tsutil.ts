@@ -102,14 +102,16 @@ module TypeScriptUtil {
     }
 
     class ObjectInspector {
-        static DEFAULT_MAX_DEPTH: number = 3;
-        obj: any;
-        maxDepth: number;
-        allInstances: any[];
-        allTypes: TypeInfo[];
-        allClasses: any[];
-        processedInstances: any[];
-        itemIndex: number;
+        private static DEFAULT_MAX_DEPTH: number = 3;
+        private obj: any;
+        private maxDepth: number;
+        private allInstances: any[];
+        private allTypes: TypeInfo[];
+        private allClasses: any[];
+        private processedInstances: any[];
+        private itemIndex: number;
+        structure: any;
+        classes: ClassInfo[];
 
         constructor(obj: any, maxDepth?: number) {
             this.obj = obj;
@@ -119,20 +121,17 @@ module TypeScriptUtil {
             this.allClasses = [];
             this.processedInstances = [];
             this.itemIndex = 0;
+            this.structure = {};
+            this.structure = [];
         }
 
-        getAllProperties(obj: any): string[] {
+        private getAllProperties(obj: any): string[] {
             var self = this;
             if (obj && typeof obj === 'object') {
                 var props = Object.getOwnPropertyNames(obj);
                 return props.filter(function (item) { return !self.isIgnoredProperty(item) });
             }
             return [];
-            //var arr: string[] = [];
-            //for (var i in obj) {
-            //    arr.push(i);
-            //}
-            //return arr;
         }
 
         private getItemId(): string {
@@ -303,14 +302,110 @@ module TypeScriptUtil {
             self.allTypes = self.allInstances.map(function(item) {
                 return self.constructTypeInfo(item);
             });
-            var structure = {};
+            var structure = this.structure = {};
             self.inspectInternal(self.obj, 0, structure);
+
+            var classes = this.classes = self.allClasses.map(function (item) {
+                return self.getTypeInfo(item);
+            });
             return {
                 structure: structure,
-                classes: <any[]>self.allClasses.map(function (item) {
-                    return self.getTypeInfo(item);
-                })
+                classes: classes
             };
+        }
+    }
+
+    class ObjectInspectorFormatter {
+        inspector: ObjectInspector;
+        indent: string;
+        constructor(inspector: ObjectInspector, indent?: string) {
+            this.inspector = inspector;
+            this.indent = indent || '  ';
+        }
+
+        format(): string {
+            throw new Error('format method not implemented');
+        }
+
+        formatString(format: string, ...params: any[]);
+        formatString(format: string, params?: any) {
+            var args: any[] = Array.prototype.slice.call(arguments, 1);
+            var result = format;
+            if (args) {
+                args.forEach(function (arg, index) {
+                    var exp = new RegExp('\\{' + index + ':?([^\\}]*)\\}', 'g');
+                    result = result.replace(exp, arg);
+                });
+            }
+            return result;
+        }
+
+        getIndent(level: number): string {
+            var str = '';
+            for (var i = 0; i < level; i++) { str += this.indent }
+            return str;
+        }
+
+        toString(): string {
+            return this.format();
+        }
+    }
+
+    class TypeScriptFormatter extends ObjectInspectorFormatter {
+        constructor(inspector: ObjectInspector, indent?: string) {
+            super(inspector, indent);
+        }
+
+        format(): string {
+            var str = this.formatClasses();
+            return str;
+        }
+
+        private formatClasses(): string {
+            var self = this;
+            var str = '';
+
+            self.inspector.classes.forEach(function (cl) {
+                str += self.formatString('class {0}', cl.name);
+                if (cl.instanceOf) {
+                    str += self.formatString(' extends {0}', cl.instanceOf.name);
+                }
+                str += ' {\n';
+
+                str += self.formatString('{0}constructor {1} { }\n', self.indent, cl.toConstructorString());
+                if (cl.attributes) {
+                    str += self.formatClassMembers(cl.attributes);
+                }
+
+                str += '}\n';
+            });
+
+            return str;
+        }
+
+        private formatClassMembers(obj: any) {
+            var self = this;
+            var props = Object.getOwnPropertyNames(obj);
+            var str = '';
+
+            props.forEach(function (prop) {
+                if (obj[prop]) {
+                    var infoType = obj[prop].constructor.name;
+
+                    if (infoType === 'FunctionInfo') {
+                        str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
+                    } else {
+                        str += self.formatString('{0}{1}:{2};\n', self.indent, prop, obj[prop].toTypeString());
+                        //str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                    }
+
+                    if (obj[prop].attributes && !obj[prop].instanceOf) {
+                        //str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
+                    }
+                }
+            });
+
+            return str;
         }
     }
 
@@ -539,21 +634,23 @@ module TypeScriptUtil {
         var str = '';
         var insp = new ObjectInspector(obj, maxIterations);
         var hier = insp.inspect();
+        var formatter = new TypeScriptFormatter(insp);
         if (hier) {
-            str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
+            str += formatter.format();
+            str += toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
 
-            hier.classes.forEach(function (cl) {
-                str += 'class ' + cl.type;
-                if (cl.instanceOf) {
-                    str += ' extends ' + cl.instanceOf.type;
-                }
-                str += ' {\n';
-                str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
-                if (cl.attributes) {
-                    str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
-                }
-                str += '}\n';
-            });
+            //hier.classes.forEach(function (cl) {
+            //    str += 'class ' + cl.type;
+            //    if (cl.instanceOf) {
+            //        str += ' extends ' + cl.instanceOf.type;
+            //    }
+            //    str += ' {\n';
+            //    str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
+            //    if (cl.attributes) {
+            //        str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
+            //    }
+            //    str += '}\n';
+            //});
         }
         return str;
     }
