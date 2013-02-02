@@ -64,6 +64,40 @@ describe('TypeScriptUtil toTypeScript function', function () {
             expect(output).toContain('propNull: any');
         });
     });
+    describe('Constants', function () {
+        var constants = {
+            CONST_STRING: 'string value',
+            CONST_EMPTY_STRING: '',
+            CONST_SPECIAL_STRING: 'line1\nline2\r\nline3\nand this one\'s backslash \\nothing here',
+            CONST_NUMBER: 12,
+            CONST_BOOLEAN: true,
+            CONST_DATE: new Date(),
+            CONST_NULL: null
+        };
+        var output = TypeScriptUtil.toTypeScript(constants, 'Constants');
+        console.log(output);
+        it('Should correctly handle normal string constants', function () {
+            expect(output).toContain('CONST_STRING: string = \'string value\';');
+        });
+        it('Should correctly handle empty string constants', function () {
+            expect(output).toContain('CONST_EMPTY_STRING: string = \'\';');
+        });
+        it('Should correctly handle special string constants', function () {
+            expect(output).toContain('CONST_SPECIAL_STRING: string = \'line1\\nline2\\r\\nline3\\nand this one\\\'s backslash \\\\nothing here\';');
+        });
+        it('Should correctly handle numeric constants', function () {
+            expect(output).toContain('CONST_NUMBER: number = 12;');
+        });
+        it('Should correctly handle boolean constants', function () {
+            expect(output).toContain('CONST_BOOLEAN: bool = true;');
+        });
+        it('Should correctly handle date constants', function () {
+            expect(output).toContain('CONST_DATE: Date = new Date(' + constants.CONST_DATE.valueOf() + ');');
+        });
+        it('Should correctly handle null constants', function () {
+            expect(output).toContain('CONST_NULL: any = null;');
+        });
+    });
     describe('Arrays', function () {
         var arrays = {
             propString: [

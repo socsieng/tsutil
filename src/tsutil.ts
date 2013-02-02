@@ -139,23 +139,21 @@ module TypeScriptUtil {
         }
 
         private getTypeString(value: any, isArray?: bool): string {
-            if (value) {
-                var type = typeof value;
-                switch (type) {
-                    case 'object':
-                        if (Array.isArray(value)) {
-                            return 'any[]';
-                        } else if (value instanceof Date) {
-                            return 'Date';
-                        }
-                        return 'any';
-                    case 'boolean':
-                        return 'bool';
-                    case 'function':
-                        return 'Function';
-                    default:
-                        return type;
-                }
+            var type = typeof value;
+            switch (type) {
+                case 'object':
+                    if (Array.isArray(value)) {
+                        return 'any[]';
+                    } else if (value instanceof Date) {
+                        return 'Date';
+                    }
+                    return 'any';
+                case 'boolean':
+                    return 'bool';
+                case 'function':
+                    return 'Function';
+                default:
+                    return type;
             }
             return 'any';
         }
@@ -202,25 +200,23 @@ module TypeScriptUtil {
         }
 
         private constructTypeInfo(obj: any): TypeInfo {
-            if (obj) {
-                var type = this.getTypeString(obj);
-                switch (type) {
-                    case 'any[]':
-                        if (obj.length == 0) {
-                            return new ArrayInfo('any', null, obj);
-                        }
-                        // TODO: iterate through array to identify all types
-                        return new ArrayInfo(this.getTypeString(obj[0]), null, obj);
-                    case 'object':
-                        return new TypeInfo('any', null, obj);
-                    case 'Function':
-                        if (this.allClasses.indexOf(obj) !== -1) {
-                            return new ClassInfo(obj, obj.name);
-                        }
-                        return new FunctionInfo(obj, null);
-                    default:
-                        return new TypeInfo(type, null, obj);
-                }
+            var type = this.getTypeString(obj);
+            switch (type) {
+                case 'any[]':
+                    if (obj.length == 0) {
+                        return new ArrayInfo('any', null, obj);
+                    }
+                    // TODO: iterate through array to identify all types
+                    return new ArrayInfo(this.getTypeString(obj[0]), null, obj);
+                case 'object':
+                    return new TypeInfo('any', null, obj);
+                case 'Function':
+                    if (this.allClasses.indexOf(obj) !== -1) {
+                        return new ClassInfo(obj, obj.name);
+                    }
+                    return new FunctionInfo(obj, null);
+                default:
+                    return new TypeInfo(type, null, obj);
             }
             return new TypeInfo('any', null, obj);
         }
@@ -320,6 +316,7 @@ module TypeScriptUtil {
     class ObjectInspectorFormatter {
         inspector: ObjectInspector;
         indent: string;
+
         constructor(inspector: ObjectInspector, indent?: string) {
             this.inspector = inspector;
             this.indent = indent || '  ';
@@ -340,6 +337,45 @@ module TypeScriptUtil {
                 });
             }
             return result;
+        }
+
+        isValidPropertyName(name: string): bool {
+            var exp = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
+            return exp.test(name);
+        }
+
+        isConstantPropertyName(name: string): bool {
+            var exp = /^[A-Z$][A-Z_$0-9]*$/;
+            return exp.test(name);
+        }
+
+        getLiteralValue(value: any): string {
+            var type = typeof value;
+            switch (type) {
+                case 'string':
+                    return '\'' + value.replace(/[\\\r\n\t']/g, function (s) {
+                        switch (s) {
+                            case '\\': return '\\\\';
+                            case '\r': return '\\r';
+                            case '\n': return '\\n';
+                            case '\t': return '\\t';
+                            case '\'': return '\\\'';
+                        }
+                        return '';
+                    }) + '\'';
+                case 'object':
+                    if (value === null) {
+                        return 'null';
+                    }
+                    if (value instanceof Date) {
+                        return this.formatString('new Date({0})', value.valueOf());
+                    }
+                    return null;
+                case 'number':
+                case 'boolean':
+                    return value.toString();
+            }
+            return null;
         }
 
         getIndent(level: number): string {
@@ -382,6 +418,33 @@ module TypeScriptUtil {
             return str;
         }
 
+        private formatClassMembers(obj: any) {
+            var self = this;
+            var props = Object.getOwnPropertyNames(obj);
+            var str = '';
+
+            props.forEach(function (prop) {
+                if (obj[prop]) {
+                    var infoType = obj[prop].constructor.name;
+
+                    if (infoType === 'FunctionInfo') {
+                        str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
+                    } else {
+                        str += self.formatString('{0}{1}: {2}', self.indent, prop, obj[prop].toTypeString());
+                        if (self.isConstantPropertyName(prop)) {
+                            var valueLiteral = self.getLiteralValue(obj[prop].value);
+                            if (valueLiteral) {
+                                str += self.formatString(' = {0}', valueLiteral);
+                            }
+                        }
+                        str += ';\n';
+                    }
+                }
+            });
+
+            return str;
+        }
+
         private formatModule(name: string, attributes: any, depth: number): string {
             var self = this;
             var str = '';
@@ -410,37 +473,18 @@ module TypeScriptUtil {
                     if (infoType === 'FunctionInfo') {
                         str += self.formatString('{0}export function{1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
                     } else {
-                        str += self.formatString('{0}export var {1}: {2};\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                        //str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                        str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                        if (self.isConstantPropertyName(prop)) {
+                            var valueLiteral = self.getLiteralValue(obj[prop].value);
+                            if (valueLiteral) {
+                                str += self.formatString(' = {0}', valueLiteral);
+                            }
+                        }
+                        str += ';\n';
                     }
 
                     if (obj[prop].attributes && !obj[prop].instanceOf) {
                         str += self.formatModule(prop, obj[prop].attributes, depth + 1);
-                    }
-                }
-            });
-
-            return str;
-        }
-
-        private formatClassMembers(obj: any) {
-            var self = this;
-            var props = Object.getOwnPropertyNames(obj);
-            var str = '';
-
-            props.forEach(function (prop) {
-                if (obj[prop]) {
-                    var infoType = obj[prop].constructor.name;
-
-                    if (infoType === 'FunctionInfo') {
-                        str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
-                    } else {
-                        str += self.formatString('{0}{1}: {2};\n', self.indent, prop, obj[prop].toTypeString());
-                        //str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
-                    }
-
-                    if (obj[prop].attributes && !obj[prop].instanceOf) {
-                        //str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
                     }
                 }
             });
