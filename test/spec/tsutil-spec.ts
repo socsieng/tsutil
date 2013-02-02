@@ -36,7 +36,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propNull: null
         }
 
-        var output = TypeScriptUtil.toTypeScript(primitives);
+        var output = TypeScriptUtil.toTypeScript(primitives, 'Primitives');
         it('Should correctly handle strings', function () {
             expect(output).toContain('propString: string');
         });
@@ -68,7 +68,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propEmpty: []
         }
 
-        var output = TypeScriptUtil.toTypeScript(arrays);
+        var output = TypeScriptUtil.toTypeScript(arrays, 'Arrays');
         it('Should correctly handle string arrays', function () {
             expect(output).toContain('propString: string[]');
         });
@@ -115,7 +115,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         }
 
         it('Should traverse the default depth of the object (3)', function () {
-            var output = TypeScriptUtil.toTypeScript(root);
+            var output = TypeScriptUtil.toTypeScript(root, 'Root');
             expect(output).toContain('rootProperty: string');
             expect(output).toContain('level1Property: string');
             expect(output).toContain('level2Property: string');
@@ -123,25 +123,26 @@ describe('TypeScriptUtil toTypeScript function', function () {
         });
 
         it('Should traverse the entire object', function () {
-            var output = TypeScriptUtil.toTypeScript(root, 0);
+            var output = TypeScriptUtil.toTypeScript(root, 'Root', 0);
+            console.log(output);
             expect(output).toContain('level5Property: string');
         });
 
         it('Should traverse 1 level deep', function () {
-            var output = TypeScriptUtil.toTypeScript(root, 1);
+            var output = TypeScriptUtil.toTypeScript(root, 'Root', 1);
             expect(output).toContain('rootProperty: string');
             expect(output).not.toContain('level1Property: string');
         });
 
         it('Should traverse 2 levels deep', function () {
-            var output = TypeScriptUtil.toTypeScript(root, 2);
+            var output = TypeScriptUtil.toTypeScript(root, 'Root', 2);
             expect(output).toContain('rootProperty: string');
             expect(output).toContain('level1Property: string');
             expect(output).not.toContain('level2Property: string');
         });
 
         it('Should traverse 3 levels deep', function () {
-            var output = TypeScriptUtil.toTypeScript(root, 3);
+            var output = TypeScriptUtil.toTypeScript(root, 'Root', 3);
             expect(output).toContain('rootProperty: string');
             expect(output).toContain('level1Property: string');
             expect(output).toContain('level2Property: string');
@@ -149,7 +150,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         });
 
         it('Should traverse 4 levels deep', function () {
-            var output = TypeScriptUtil.toTypeScript(root, 4);
+            var output = TypeScriptUtil.toTypeScript(root, 'Root', 4);
             expect(output).toContain('rootProperty: string');
             expect(output).toContain('level1Property: string');
             expect(output).toContain('level2Property: string');
@@ -172,7 +173,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         parent.child = child;
         
         it('Should correctly handle circular references', function () {
-            var output = TypeScriptUtil.toTypeScript(parent);
+            var output = TypeScriptUtil.toTypeScript(parent, 'Parent');
             expect(output).toContain('parentProperty: number');
             expect(output).toContain('child: any');
             expect(output).toContain('childProperty: string');
@@ -182,10 +183,11 @@ describe('TypeScriptUtil toTypeScript function', function () {
 
     describe('Inheritence', function () {
         var stuff = {
+            randomProperty: 'Something',
             car: new TestClasses.Car('My car'),
             boat: new TestClasses.Boat('My boat')
         }
-        var output = TypeScriptUtil.toTypeScript(stuff, 0);
+        var output = TypeScriptUtil.toTypeScript(stuff, 'Stuff', 0);
         console.log(output);
 
         it('Should list classes', function () {

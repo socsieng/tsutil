@@ -323,7 +323,7 @@ module TypeScriptUtil {
             this.indent = indent || '  ';
         }
 
-        format(): string {
+        format(rootName: string): string {
             throw new Error('format method not implemented');
         }
 
@@ -345,10 +345,6 @@ module TypeScriptUtil {
             for (var i = 0; i < level; i++) { str += this.indent }
             return str;
         }
-
-        toString(): string {
-            return this.format();
-        }
     }
 
     class TypeScriptFormatter extends ObjectInspectorFormatter {
@@ -356,8 +352,9 @@ module TypeScriptUtil {
             super(inspector, indent);
         }
 
-        format(): string {
+        format(rootName: string): string {
             var str = this.formatClasses();
+            str += this.formatModule(rootName, this.inspector.structure, 0);
             return str;
         }
 
@@ -383,6 +380,47 @@ module TypeScriptUtil {
             return str;
         }
 
+        private formatModule(name: string, attributes: any, depth: number): string {
+            var self = this;
+            var str = '';
+
+            str += self.formatString('{0}module {1} {\n', self.getIndent(depth), name);
+
+            if (attributes) {
+                str += self.formatModuleMembers(attributes, depth);
+            }
+
+            str += self.getIndent(depth);
+            str += '}\n';
+
+            return str;
+        }
+
+        private formatModuleMembers(obj: any, depth: number) {
+            var self = this;
+            var props = Object.getOwnPropertyNames(obj);
+            var str = '';
+
+            props.forEach(function (prop) {
+                if (obj[prop]) {
+                    var infoType = obj[prop].constructor.name;
+
+                    if (infoType === 'FunctionInfo') {
+                        str += self.formatString('{0}export function{1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                    } else {
+                        str += self.formatString('{0}export var {1}: {2};\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                        //str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
+                    }
+
+                    if (obj[prop].attributes && !obj[prop].instanceOf) {
+                        str += self.formatModule(prop, obj[prop].attributes, depth + 1);
+                    }
+                }
+            });
+
+            return str;
+        }
+
         private formatClassMembers(obj: any) {
             var self = this;
             var props = Object.getOwnPropertyNames(obj);
@@ -395,7 +433,7 @@ module TypeScriptUtil {
                     if (infoType === 'FunctionInfo') {
                         str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
                     } else {
-                        str += self.formatString('{0}{1}:{2};\n', self.indent, prop, obj[prop].toTypeString());
+                        str += self.formatString('{0}{1}: {2};\n', self.indent, prop, obj[prop].toTypeString());
                         //str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
                     }
 
@@ -409,251 +447,14 @@ module TypeScriptUtil {
         }
     }
 
-    var defaults = {
-        maxIterations: 3,
-        indent: '  '
-    }
-
-    function getIndent(level: number, characters?: string) {
-        characters = typeof characters === 'undefined' ? defaults.indent : characters;
-        var str = '';
-        for (var i = 0; i < level; i++) { str += characters }
-        return str;
-    }
-
-    function getTypeString(value: any): string {
-        if (value) {
-            var type = typeof value;
-            switch (type) {
-                case 'object':
-                    if (Array.isArray(value)) {
-                        if (value.length == 0) {
-                            return 'any[]';
-                        }
-
-                        // TODO: inspect all elements of the array
-                        return getTypeString(value[0]) + '[]';
-                    }
-                    return 'any';
-                case 'boolean':
-                    return 'bool';
-                case 'function':
-                    return 'Function';
-                default:
-                    return type;
-            }
-        }
-        return 'any';
-    }
-
-    export function inspect(obj: any, maxIterations?: number): any {
-        var objectsDone = [];
-        var typesDone = [];
-        var classes: any = {};
-
-        maxIterations = typeof maxIterations === 'undefined' ? defaults.maxIterations : maxIterations;
-
-        function getAllProperties(obj: any): string[] {
-            var arr = [];
-            for (var i in obj) {
-                arr.push(i);
-            }
-
-            return arr;
-        }
-
-        var anonCount = 0;
-        function parseObject(obj: any, hierarchy: any, depth: number) {
-            //var props = Object.getOwnPropertyNames(obj);
-            var props = getAllProperties(obj);
-
-            props.forEach(function (prop) {
-                if (prop in obj) {
-                    try {
-                        var val = obj[prop];
-                        var type = getTypeString(val);
-
-                        if (typeof val === 'object' && val !== window) { // ignore the window object
-                            if (val) {
-                                var doneIndex = objectsDone.indexOf(val);
-                                if (doneIndex === -1) {
-                                    var ti = null;
-                                    objectsDone.push(val);
-
-                                    if (Array.isArray(val)) {
-                                        if (val.length > 0) {
-                                            ti = new ArrayInfo(getTypeString(val[0]), prop, val); // TODO: iterate through all items to infer type
-                                            hierarchy[prop] = ti;
-                                        } else {
-                                            ti = new ArrayInfo('any', prop);
-                                            hierarchy[prop] = ti;
-                                        }
-                                        
-                                        typesDone.push(ti);
-                                    } else {
-                                        if (val.constructor && val.constructor.name !== 'Object') {
-                                            // TODO: make sure names don't conflict
-                                            if (!classes[val.constructor.toString()]) {
-                                                ti = new ClassInfo(val.constructor, val.constructor.name);
-                                                typesDone.push(ti);
-
-                                                // handle anonymous constructors
-                                                if (!(ti.name && ti.type)) {
-                                                    var existingFunctionIndex = objectsDone.indexOf(val);
-                                                    var existingFunction = typesDone[existingFunctionIndex];
-                                                    ti.name = ti.type = existingFunction && existingFunction.name ? existingFunction.name : 'Anon_' + (++anonCount);
-                                                }
-
-                                                classes[val.constructor.toString()] = ti;
-                                            } else {
-                                                typesDone.push(null);
-                                            }
-
-                                            // TODO: traverse base classes
-                                        } else {
-                                            ti = new TypeInfo(type, prop, val);
-                                            typesDone.push(ti);
-                                        }
-
-                                        hierarchy[prop] = ti;
-
-                                        if (depth + 1 < maxIterations || maxIterations === 0) {
-                                            var attr = {};
-                                            parseObject(val, attr, depth + 1);
-
-                                            if (Object.getOwnPropertyNames(attr).length) {
-                                                ti.attributes = attr;
-                                            }
-                                        } else {
-                                            // max depth exceeded
-                                        }
-                                    }
-                                } else {
-                                    // object instance already processed (prevents circular recursion)
-                                    hierarchy[prop] = typesDone[doneIndex];
-                                }
-                            } else {
-                                hierarchy[prop] = new TypeInfo(type, prop);
-                            }
-                        } else if (typeof val === 'function') {
-                            var fInfo = new FunctionInfo(val);
-                            fInfo.name = fInfo.name || prop;
-                            hierarchy[prop] = fInfo;
-                        } else if (typeof val === 'boolean') {
-                            hierarchy[prop] = new TypeInfo(type, prop, val);
-                        } else {
-                            hierarchy[prop] = new TypeInfo(type, prop, val);
-                        }
-                    } catch (ex) {
-                        console.log(ex);
-                    }
-                }
-            });
-        }
-
-        if (obj) {
-            var hier = {}
-            parseObject(obj, hier, 0);
-            //return hier;
-
-            return {
-                structure: hier,
-                classes: classes
-            };
-        }
-        return null;
-    }
-
-    function toTypeScriptDefinition(obj: any, depth: number, format: string, name: string) {
-        if (obj) {
-            var props = Object.getOwnPropertyNames(obj);
-            var indent = '  ';
-            var str = '';
-
-            if (format === 'module') {
-                str += getIndent(depth) + 'module ' + name + ' {\n';
-            }
-
-            props.forEach(function (prop) {
-                if (obj[prop]) {
-                    var infoType = obj[prop].constructor.name;
-                    var isClass = obj[prop] instanceof ClassInfo;
-                    str += getIndent(depth + 1);
-
-                    if (format === 'module') {
-                        if (infoType === 'FunctionInfo') {
-                            str += 'export function ';
-                            str += prop + obj[prop].toTypeString() + ' { }\n';
-                        } else {
-                            str += 'export var ';
-                            str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
-                        }
-                    } else if (format === 'class') {
-                        if (infoType === 'FunctionInfo') {
-                            str += prop + obj[prop].toTypeString() + ' { }\n';
-                        } else {
-                            str += prop + ': ' + obj[prop].toTypeString() + ';' + (obj[prop].value && infoType !== 'ArrayInfo' ? '\t// ' + obj[prop].value.toString() + '\n' : '\n');
-                        }
-                    }
-
-                    if (obj[prop].attributes && !isClass && !obj[prop].instanceOf) {
-                        str += toTypeScriptDefinition(obj[prop].attributes, depth + 1, isClass ? 'class' : 'module', isClass ? obj[prop].type : prop);
-                    }
-                }
-            });
-
-            if (format === 'module') {
-                str += getIndent(depth) + '}\n';
-            }
-
-            return str;
-        }
-        return '';
-    }
-
-    export function toTypeScript1(obj: any, maxIterations?: number): string {
-        var str = '';
-        var hier = inspect(obj, maxIterations);
-        if (hier) {
-            str = toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
-
-            for (var c in hier.classes) {
-                var cl = hier.classes[c];
-                str += 'class ' + cl.type + ' {\n';
-                str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
-                if (cl.attributes) {
-                    str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
-                }
-                str += '}\n';
-            }
-        }
-        return str;
-    }
-
-    export function toTypeScript2(obj: any, maxIterations?: number): string {
+    export function toTypeScript(obj: any, name: string, maxIterations?: number): string {
         var str = '';
         var insp = new ObjectInspector(obj, maxIterations);
         var hier = insp.inspect();
         var formatter = new TypeScriptFormatter(insp);
         if (hier) {
-            str += formatter.format();
-            str += toTypeScriptDefinition(hier.structure, 0, 'module', 'MyModule');
-
-            //hier.classes.forEach(function (cl) {
-            //    str += 'class ' + cl.type;
-            //    if (cl.instanceOf) {
-            //        str += ' extends ' + cl.instanceOf.type;
-            //    }
-            //    str += ' {\n';
-            //    str += getIndent(1) + 'constructor' + cl.toConstructorString() + ' { }\n';
-            //    if (cl.attributes) {
-            //        str += toTypeScriptDefinition(cl.attributes, 0, 'class', '');
-            //    }
-            //    str += '}\n';
-            //});
+            str += formatter.format(name);
         }
         return str;
     }
-
-    export var toTypeScript = toTypeScript2;
 }
