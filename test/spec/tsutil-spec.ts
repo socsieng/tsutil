@@ -32,11 +32,13 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propString: 'string value',
             propNumber: 12,
             propBoolean: true,
+            propDate: new Date(),
             propFunction: function customFunctionName(input1, input2) { return null; },
             propNull: null
         }
 
         var output = TypeScriptUtil.toTypeScript(primitives, 'Primitives');
+        console.log(output);
         it('Should correctly handle strings', function () {
             expect(output).toContain('propString: string');
         });
@@ -47,6 +49,10 @@ describe('TypeScriptUtil toTypeScript function', function () {
 
         it('Should correctly handle booleans', function () {
             expect(output).toContain('propBoolean: bool');
+        });
+
+        it('Should correctly handle dates', function () {
+            expect(output).toContain('propDate: Date');
         });
 
         it('Should correctly handle functions', function () {
@@ -63,6 +69,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propString: ['a', 'b', 'c'],
             propNumber: [1, 2, 3],
             propBoolean: [true, false, true],
+            propDate: [new Date()],
             propObject: [{}],
             propFunction: [function () { }],
             propEmpty: []
@@ -83,6 +90,10 @@ describe('TypeScriptUtil toTypeScript function', function () {
 
         it('Should correctly handle object arrays', function () {
             expect(output).toContain('propObject: any[]');
+        });
+
+        it('Should correctly handle date arrays', function () {
+            expect(output).toContain('propDate: Date[]');
         });
 
         it('Should correctly handle function arrays', function () {

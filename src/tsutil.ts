@@ -145,6 +145,8 @@ module TypeScriptUtil {
                     case 'object':
                         if (Array.isArray(value)) {
                             return 'any[]';
+                        } else if (value instanceof Date) {
+                            return 'Date';
                         }
                         return 'any';
                     case 'boolean':
@@ -164,7 +166,7 @@ module TypeScriptUtil {
         }
 
         private isIgnoredValue(obj: any): bool {
-            var ignored: any[] = [Object, String, Number, Boolean, Function, Array, Window, window];
+            var ignored: any[] = [Object, String, Number, Boolean, Date, Function, Array, Window, window];
             return ignored.indexOf(obj) !== -1;
         }
 

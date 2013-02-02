@@ -114,6 +114,10 @@ var TypeScriptUtil;
                     case 'object': {
                         if(Array.isArray(value)) {
                             return 'any[]';
+                        } else {
+                            if(value instanceof Date) {
+                                return 'Date';
+                            }
                         }
                         return 'any';
 
@@ -146,6 +150,7 @@ var TypeScriptUtil;
                 String, 
                 Number, 
                 Boolean, 
+                Date, 
                 Function, 
                 Array, 
                 Window, 
