@@ -124,8 +124,10 @@ describe('TypeScriptUtil toTypeScript function', function () {
         }
 
         var output = TypeScriptUtil.toTypeScript(arrays, 'Arrays');
+        console.log(output);
         it('Should correctly handle string arrays', function () {
             expect(output).toContain('propString: string[]');
+            expect(output).not.toContain('module propString');
         });
 
         it('Should correctly handle number arrays', function () {
@@ -234,9 +236,9 @@ describe('TypeScriptUtil toTypeScript function', function () {
         it('Should correctly handle circular references', function () {
             var output = TypeScriptUtil.toTypeScript(parent, 'Parent');
             expect(output).toContain('parentProperty: number');
-            expect(output).toContain('child: any');
+            expect(output).toContain('module child');
             expect(output).toContain('childProperty: string');
-            expect(output).toContain('parent: any');
+            expect(output).toContain('module parent');
         });
     });
 

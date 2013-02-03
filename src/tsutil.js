@@ -230,7 +230,7 @@ var TypeScriptUtil;
                                 typeInfo.instanceOf = self.getTypeInfo(ctor);
                                 typeInfo = typeInfo.instanceOf;
                             }
-                            if(val && self.getAllProperties(val).length) {
+                            if(val && self.getAllProperties(val).length && !Array.isArray(val)) {
                                 typeInfo.attributes = typeInfo.attributes || {
                                 };
                                 self.inspectInternal(val, depth + 1, typeInfo.attributes);
@@ -449,18 +449,19 @@ var TypeScriptUtil;
                         if(obj[prop] instanceof FunctionInfo) {
                             str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
                         } else {
-                            str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                            if(self.isConstantPropertyName(prop)) {
-                                var valueLiteral = self.getLiteralValue(obj[prop].value);
-                                if(valueLiteral) {
-                                    str += self.formatString(' = {0}', valueLiteral);
+                            if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
+                                str += self.formatModule(prop, obj[prop].attributes, depth + 1);
+                            } else {
+                                str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                                if(self.isConstantPropertyName(prop)) {
+                                    var valueLiteral = self.getLiteralValue(obj[prop].value);
+                                    if(valueLiteral) {
+                                        str += self.formatString(' = {0}', valueLiteral);
+                                    }
                                 }
+                                str += ';\n';
                             }
-                            str += ';\n';
                         }
-                    }
-                    if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
-                        str += self.formatModule(prop, obj[prop].attributes, depth + 1);
                     }
                 }
             });
