@@ -109,9 +109,9 @@ module TypeScriptUtil {
         private allTypes: TypeInfo[];
         private allClasses: any[];
         private processedInstances: any[];
-        private itemIndex: number;
         structure: any;
         classes: ClassInfo[];
+        private anonymousCount: number;
 
         constructor(obj: any, maxDepth?: number) {
             this.obj = obj;
@@ -120,9 +120,9 @@ module TypeScriptUtil {
             this.allTypes = [];
             this.allClasses = [];
             this.processedInstances = [];
-            this.itemIndex = 0;
             this.structure = {};
-            this.structure = [];
+            this.classes = [];
+            this.anonymousCount = 0;
         }
 
         private getAllProperties(obj: any): string[] {
@@ -132,10 +132,6 @@ module TypeScriptUtil {
                 return props.filter(function (item) { return !self.isIgnoredProperty(item) });
             }
             return [];
-        }
-
-        private getItemId(): string {
-            return 'i' + (++this.itemIndex);
         }
 
         private getTypeString(value: any, isArray?: bool): string {
@@ -243,6 +239,7 @@ module TypeScriptUtil {
                             var typeInfo = self.getTypeInfo(val);
                             var ctor = self.getConstructor(val);
 
+                            typeInfo.type = typeInfo.type || prop;
                             infoContainer[prop] = typeInfo;
 
                             if (ctor) {
@@ -264,12 +261,19 @@ module TypeScriptUtil {
                         // obj is an instance of a class
                         var ctorTypeInfo: FunctionInfo = <FunctionInfo>self.getTypeInfo(ctor);
                         ctorTypeInfo.isConstructor = true;
+                        ctorTypeInfo.type = ctorTypeInfo.type || 'AnonymousType_' + (++self.anonymousCount);
 
                         objTypeInfo.instanceOf = self.getTypeInfo(ctor);
 
                         var baseCtor = self.getConstructor(obj.__proto__);
                         var base = obj.__proto__;
+
                         if (baseCtor === ctor) {
+                            if (base && self.getAllProperties(base).length && !self.isIgnoredValue(base.constructor)) {
+                                ctorTypeInfo.attributes = ctorTypeInfo.attributes || {};
+                                self.inspectInternal(base, depth + 1, ctorTypeInfo.attributes);
+                            }
+
                             baseCtor = self.getConstructor(obj.__proto__.__proto__);
                             base = obj.__proto__.__proto__;
                         }
@@ -401,9 +405,9 @@ module TypeScriptUtil {
             var str = '';
 
             self.inspector.classes.forEach(function (cl) {
-                str += self.formatString('class {0}', cl.name);
+                str += self.formatString('class {0}', cl.type);
                 if (cl.inherits) {
-                    str += self.formatString(' extends {0}', cl.inherits.name);
+                    str += self.formatString(' extends {0}', cl.inherits.type);
                 }
                 str += ' {\n';
 
@@ -427,7 +431,7 @@ module TypeScriptUtil {
                 if (obj[prop]) {
                     var infoType = obj[prop].constructor.name;
 
-                    if (infoType === 'FunctionInfo') {
+                    if (obj[prop] instanceof FunctionInfo) {
                         str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
                     } else {
                         str += self.formatString('{0}{1}: {2}', self.indent, prop, obj[prop].toTypeString());
@@ -468,10 +472,11 @@ module TypeScriptUtil {
 
             props.forEach(function (prop) {
                 if (obj[prop]) {
-                    var infoType = obj[prop].constructor.name;
-
-                    if (infoType === 'FunctionInfo') {
-                        str += self.formatString('{0}export function{1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                    if (obj[prop] instanceof ClassInfo) {
+                        // ignore class constructors in modules, assume that this will be represented as a class
+                        //str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toConstructorString());
+                    } else if (obj[prop] instanceof FunctionInfo) {
+                        str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
                     } else {
                         str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
                         if (self.isConstantPropertyName(prop)) {
@@ -483,7 +488,7 @@ module TypeScriptUtil {
                         str += ';\n';
                     }
 
-                    if (obj[prop].attributes && !obj[prop].instanceOf) {
+                    if (obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
                         str += self.formatModule(prop, obj[prop].attributes, depth + 1);
                     }
                 }

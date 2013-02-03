@@ -19,6 +19,8 @@ var TestClasses;
         function Car(name) {
                 _super.call(this, name);
         }
+        Car.prototype.reverse = function () {
+        };
         return Car;
     })(Vehicle);
     TestClasses.Car = Car;    
@@ -254,6 +256,9 @@ describe('TypeScriptUtil toTypeScript function', function () {
         it('car should be of type Car', function () {
             expect(output).toContain('car: Car');
         });
+        it('Car should have a reverse method', function () {
+            expect(output).toContain('reverse(): void { }');
+        });
         it('boat should be of type Boat', function () {
             expect(output).toContain('boat: Boat');
         });
@@ -262,6 +267,44 @@ describe('TypeScriptUtil toTypeScript function', function () {
         });
         it('Boat should extend Vehicle', function () {
             expect(output).toContain('class Boat extends Vehicle');
+        });
+    });
+    describe('Anonymous Classes', function () {
+        var anonClass = function (prop) {
+            this.prop = prop;
+        };
+        var oldSchool = {
+            OldSchoolClass: function (name) {
+                this.name = name;
+            },
+            oldSchoolInstance: null,
+            anotherInstance: null,
+            anonInstance: new anonClass('anon')
+        };
+        oldSchool.OldSchoolClass.prototype.randomFunction = function (params) {
+        };
+        oldSchool.oldSchoolInstance = new oldSchool.OldSchoolClass('instance');
+        oldSchool.anotherInstance = new oldSchool.OldSchoolClass('other');
+        var output = TypeScriptUtil.toTypeScript(oldSchool, 'OldSchool', 0);
+        console.log(output);
+        it('Should resolve class name', function () {
+            expect(output).toContain('class OldSchoolClass');
+        });
+        it('OldSchoolClass should have method randomFunction', function () {
+            expect(output).toContain('randomFunction(params: any): void { }');
+        });
+        it('Should not contain an OldSchoolClass module', function () {
+            expect(output).not.toContain('module OldSchoolClass');
+        });
+        it('Should have instance of the class', function () {
+            expect(output).toContain('oldSchoolInstance: OldSchoolClass');
+            expect(output).toContain('anotherInstance: OldSchoolClass');
+        });
+        it('Should have anonymous class', function () {
+            expect(output).toContain('class AnonymousType_1');
+        });
+        it('Should have an instance of anonymous class', function () {
+            expect(output).toContain('anonInstance: AnonymousType_1');
         });
     });
 });

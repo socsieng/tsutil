@@ -88,10 +88,10 @@ var TypeScriptUtil;
             this.allTypes = [];
             this.allClasses = [];
             this.processedInstances = [];
-            this.itemIndex = 0;
             this.structure = {
             };
-            this.structure = [];
+            this.classes = [];
+            this.anonymousCount = 0;
         }
         ObjectInspector.DEFAULT_MAX_DEPTH = 3;
         ObjectInspector.prototype.getAllProperties = function (obj) {
@@ -103,9 +103,6 @@ var TypeScriptUtil;
                 });
             }
             return [];
-        };
-        ObjectInspector.prototype.getItemId = function () {
-            return 'i' + (++this.itemIndex);
         };
         ObjectInspector.prototype.getTypeString = function (value, isArray) {
             var type = typeof value;
@@ -227,6 +224,7 @@ var TypeScriptUtil;
                             var val = obj[prop];
                             var typeInfo = self.getTypeInfo(val);
                             var ctor = self.getConstructor(val);
+                            typeInfo.type = typeInfo.type || prop;
                             infoContainer[prop] = typeInfo;
                             if(ctor) {
                                 typeInfo.instanceOf = self.getTypeInfo(ctor);
@@ -244,10 +242,16 @@ var TypeScriptUtil;
                     if(ctor) {
                         var ctorTypeInfo = self.getTypeInfo(ctor);
                         ctorTypeInfo.isConstructor = true;
+                        ctorTypeInfo.type = ctorTypeInfo.type || 'AnonymousType_' + (++self.anonymousCount);
                         objTypeInfo.instanceOf = self.getTypeInfo(ctor);
                         var baseCtor = self.getConstructor(obj.__proto__);
                         var base = obj.__proto__;
                         if(baseCtor === ctor) {
+                            if(base && self.getAllProperties(base).length && !self.isIgnoredValue(base.constructor)) {
+                                ctorTypeInfo.attributes = ctorTypeInfo.attributes || {
+                                };
+                                self.inspectInternal(base, depth + 1, ctorTypeInfo.attributes);
+                            }
                             baseCtor = self.getConstructor(obj.__proto__.__proto__);
                             base = obj.__proto__.__proto__;
                         }
@@ -387,9 +391,9 @@ var TypeScriptUtil;
             var self = this;
             var str = '';
             self.inspector.classes.forEach(function (cl) {
-                str += self.formatString('class {0}', cl.name);
+                str += self.formatString('class {0}', cl.type);
                 if(cl.inherits) {
-                    str += self.formatString(' extends {0}', cl.inherits.name);
+                    str += self.formatString(' extends {0}', cl.inherits.type);
                 }
                 str += ' {\n';
                 str += self.formatString('{0}constructor {1} { }\n', self.indent, cl.toConstructorString());
@@ -407,7 +411,7 @@ var TypeScriptUtil;
             props.forEach(function (prop) {
                 if(obj[prop]) {
                     var infoType = obj[prop].constructor.name;
-                    if(infoType === 'FunctionInfo') {
+                    if(obj[prop] instanceof FunctionInfo) {
                         str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
                     } else {
                         str += self.formatString('{0}{1}: {2}', self.indent, prop, obj[prop].toTypeString());
@@ -440,20 +444,22 @@ var TypeScriptUtil;
             var str = '';
             props.forEach(function (prop) {
                 if(obj[prop]) {
-                    var infoType = obj[prop].constructor.name;
-                    if(infoType === 'FunctionInfo') {
-                        str += self.formatString('{0}export function{1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                    if(obj[prop] instanceof ClassInfo) {
                     } else {
-                        str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                        if(self.isConstantPropertyName(prop)) {
-                            var valueLiteral = self.getLiteralValue(obj[prop].value);
-                            if(valueLiteral) {
-                                str += self.formatString(' = {0}', valueLiteral);
+                        if(obj[prop] instanceof FunctionInfo) {
+                            str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                        } else {
+                            str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                            if(self.isConstantPropertyName(prop)) {
+                                var valueLiteral = self.getLiteralValue(obj[prop].value);
+                                if(valueLiteral) {
+                                    str += self.formatString(' = {0}', valueLiteral);
+                                }
                             }
+                            str += ';\n';
                         }
-                        str += ';\n';
                     }
-                    if(obj[prop].attributes && !obj[prop].instanceOf) {
+                    if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
                         str += self.formatModule(prop, obj[prop].attributes, depth + 1);
                     }
                 }
