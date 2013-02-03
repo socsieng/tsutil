@@ -41,6 +41,8 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propFunction: function customFunctionName(input1, input2) {
                 return null;
             },
+            propVoidFunction: function customVoidFunctionName(input1, input2) {
+            },
             propNull: null
         };
         var output = TypeScriptUtil.toTypeScript(primitives, 'Primitives');
@@ -59,6 +61,9 @@ describe('TypeScriptUtil toTypeScript function', function () {
         });
         it('Should correctly handle functions', function () {
             expect(output).toContain('propFunction(input1: any, input2: any): any');
+        });
+        it('Should correctly handle functions with no return value', function () {
+            expect(output).toContain('propVoidFunction(input1: any, input2: any): void');
         });
         it('Should correctly handle nulls', function () {
             expect(output).toContain('propNull: any');
@@ -236,7 +241,9 @@ describe('TypeScriptUtil toTypeScript function', function () {
         console.log(output);
         it('Should list classes', function () {
             expect(output).toContain('class Car');
+            expect(output).not.toContain('module car');
             expect(output).toContain('class Boat');
+            expect(output).not.toContain('module boat');
         });
         it('Should have class Vehicle', function () {
             expect(output).toContain('class Vehicle');

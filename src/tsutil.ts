@@ -184,7 +184,7 @@ module TypeScriptUtil {
                         });
                     }
 
-                    // inheritence
+                    // inheritance
                     var instanceOf = self.getConstructor(obj);
                     if (instanceOf) {
                         if (self.allClasses.indexOf(instanceOf) === -1) {
@@ -243,12 +243,12 @@ module TypeScriptUtil {
                             var typeInfo = self.getTypeInfo(val);
                             var ctor = self.getConstructor(val);
 
+                            infoContainer[prop] = typeInfo;
+
                             if (ctor) {
                                 typeInfo.instanceOf = self.getTypeInfo(ctor);
                                 typeInfo = typeInfo.instanceOf;
                             }
-
-                            infoContainer[prop] = typeInfo;
 
                             if (val && self.getAllProperties(val).length) {
                                 typeInfo.attributes = typeInfo.attributes || {};
@@ -257,7 +257,7 @@ module TypeScriptUtil {
                         });
                     }
 
-                    // inheritence
+                    // inheritance
                     var objTypeInfo = self.getTypeInfo(obj);
                     var ctor = self.getConstructor(obj);
                     if (ctor) {
@@ -275,7 +275,7 @@ module TypeScriptUtil {
                         }
 
                         if (baseCtor) {
-                            var baseTypeInfo = ctorTypeInfo.instanceOf = self.getTypeInfo(baseCtor);
+                            var baseTypeInfo = (<ClassInfo>ctorTypeInfo).inherits = <ClassInfo>self.getTypeInfo(baseCtor);
 
                             if (base && self.getAllProperties(base).length) {
                                 baseTypeInfo.attributes = baseTypeInfo.attributes || {};
@@ -402,8 +402,8 @@ module TypeScriptUtil {
 
             self.inspector.classes.forEach(function (cl) {
                 str += self.formatString('class {0}', cl.name);
-                if (cl.instanceOf) {
-                    str += self.formatString(' extends {0}', cl.instanceOf.name);
+                if (cl.inherits) {
+                    str += self.formatString(' extends {0}', cl.inherits.name);
                 }
                 str += ' {\n';
 

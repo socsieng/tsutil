@@ -227,11 +227,11 @@ var TypeScriptUtil;
                             var val = obj[prop];
                             var typeInfo = self.getTypeInfo(val);
                             var ctor = self.getConstructor(val);
+                            infoContainer[prop] = typeInfo;
                             if(ctor) {
                                 typeInfo.instanceOf = self.getTypeInfo(ctor);
                                 typeInfo = typeInfo.instanceOf;
                             }
-                            infoContainer[prop] = typeInfo;
                             if(val && self.getAllProperties(val).length) {
                                 typeInfo.attributes = typeInfo.attributes || {
                                 };
@@ -252,7 +252,7 @@ var TypeScriptUtil;
                             base = obj.__proto__.__proto__;
                         }
                         if(baseCtor) {
-                            var baseTypeInfo = ctorTypeInfo.instanceOf = self.getTypeInfo(baseCtor);
+                            var baseTypeInfo = (ctorTypeInfo).inherits = self.getTypeInfo(baseCtor);
                             if(base && self.getAllProperties(base).length) {
                                 baseTypeInfo.attributes = baseTypeInfo.attributes || {
                                 };
@@ -388,8 +388,8 @@ var TypeScriptUtil;
             var str = '';
             self.inspector.classes.forEach(function (cl) {
                 str += self.formatString('class {0}', cl.name);
-                if(cl.instanceOf) {
-                    str += self.formatString(' extends {0}', cl.instanceOf.name);
+                if(cl.inherits) {
+                    str += self.formatString(' extends {0}', cl.inherits.name);
                 }
                 str += ' {\n';
                 str += self.formatString('{0}constructor {1} { }\n', self.indent, cl.toConstructorString());
