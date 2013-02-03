@@ -57,7 +57,7 @@ var TypeScriptUtil;
         };
         FunctionInfo.parse = function parse(src) {
             return new FunctionInfo(src, '');
-        }
+        };
         FunctionInfo.prototype.toTypeString = function () {
             return '(' + this.parameters.map(function (item) {
                 return item.name + ': ' + item.type;
@@ -107,29 +107,19 @@ var TypeScriptUtil;
         ObjectInspector.prototype.getTypeString = function (value, isArray) {
             var type = typeof value;
             switch(type) {
-                case 'object': {
+                case 'object':
                     if(Array.isArray(value)) {
                         return 'any[]';
-                    } else {
-                        if(value instanceof Date) {
-                            return 'Date';
-                        }
+                    } else if(value instanceof Date) {
+                        return 'Date';
                     }
                     return 'any';
-
-                }
-                case 'boolean': {
+                case 'boolean':
                     return 'bool';
-
-                }
-                case 'function': {
+                case 'function':
                     return 'Function';
-
-                }
-                default: {
+                default:
                     return type;
-
-                }
             }
             return 'any';
         };
@@ -172,8 +162,8 @@ var TypeScriptUtil;
                         }
                         self.extractInstances(instanceOf, 0);
                     }
-                    if(obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnoredValue(obj.__proto__.constructor)) {
-                        self.extractInstances(obj.__proto__, 0);
+                    if(obj['__proto__'] && obj['__proto__'].constructor !== Object && !self.isIgnoredValue(obj['__proto__'].constructor)) {
+                        self.extractInstances(obj['__proto__'], 0);
                     }
                 }
             }
@@ -181,28 +171,20 @@ var TypeScriptUtil;
         ObjectInspector.prototype.constructTypeInfo = function (obj) {
             var type = this.getTypeString(obj);
             switch(type) {
-                case 'any[]': {
+                case 'any[]':
                     if(obj.length == 0) {
                         return new ArrayInfo('any', null, obj);
                     }
                     return new ArrayInfo(this.getTypeString(obj[0]), null, obj);
-
-                }
-                case 'object': {
+                case 'object':
                     return new TypeInfo('any', null, obj);
-
-                }
-                case 'Function': {
+                case 'Function':
                     if(this.allClasses.indexOf(obj) !== -1) {
                         return new ClassInfo(obj, obj.name);
                     }
                     return new FunctionInfo(obj, null);
-
-                }
-                default: {
+                default:
                     return new TypeInfo(type, null, obj);
-
-                }
             }
             return new TypeInfo('any', null, obj);
         };
@@ -244,16 +226,16 @@ var TypeScriptUtil;
                         ctorTypeInfo.isConstructor = true;
                         ctorTypeInfo.type = ctorTypeInfo.type || 'AnonymousType_' + (++self.anonymousCount);
                         objTypeInfo.instanceOf = self.getTypeInfo(ctor);
-                        var baseCtor = self.getConstructor(obj.__proto__);
-                        var base = obj.__proto__;
+                        var baseCtor = self.getConstructor(obj['__proto__']);
+                        var base = obj['__proto__'];
                         if(baseCtor === ctor) {
                             if(base && self.getAllProperties(base).length && !self.isIgnoredValue(base.constructor)) {
                                 ctorTypeInfo.attributes = ctorTypeInfo.attributes || {
                                 };
                                 self.inspectInternal(base, depth + 1, ctorTypeInfo.attributes);
                             }
-                            baseCtor = self.getConstructor(obj.__proto__.__proto__);
-                            base = obj.__proto__.__proto__;
+                            baseCtor = self.getConstructor(obj['__proto__']['__proto__']);
+                            base = obj['__proto__']['__proto__'];
                         }
                         if(baseCtor) {
                             var baseTypeInfo = (ctorTypeInfo).inherits = self.getTypeInfo(baseCtor);
@@ -322,35 +304,23 @@ var TypeScriptUtil;
         ObjectInspectorFormatter.prototype.getLiteralValue = function (value) {
             var type = typeof value;
             switch(type) {
-                case 'string': {
+                case 'string':
                     return '\'' + value.replace(/[\\\r\n\t']/g, function (s) {
                         switch(s) {
-                            case '\\': {
+                            case '\\':
                                 return '\\\\';
-
-                            }
-                            case '\r': {
+                            case '\r':
                                 return '\\r';
-
-                            }
-                            case '\n': {
+                            case '\n':
                                 return '\\n';
-
-                            }
-                            case '\t': {
+                            case '\t':
                                 return '\\t';
-
-                            }
-                            case '\'': {
+                            case '\'':
                                 return '\\\'';
-
-                            }
                         }
                         return '';
                     }) + '\'';
-
-                }
-                case 'object': {
+                case 'object':
                     if(value === null) {
                         return 'null';
                     }
@@ -358,13 +328,9 @@ var TypeScriptUtil;
                         return this.formatString('new Date({0})', value.valueOf());
                     }
                     return null;
-
-                }
                 case 'number':
-                case 'boolean': {
+                case 'boolean':
                     return value.toString();
-
-                }
             }
             return null;
         };
@@ -445,23 +411,19 @@ var TypeScriptUtil;
             props.forEach(function (prop) {
                 if(obj[prop]) {
                     if(obj[prop] instanceof ClassInfo) {
+                    } else if(obj[prop] instanceof FunctionInfo) {
+                        str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                    } else if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
+                        str += self.formatModule(prop, obj[prop].attributes, depth + 1);
                     } else {
-                        if(obj[prop] instanceof FunctionInfo) {
-                            str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                        } else {
-                            if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
-                                str += self.formatModule(prop, obj[prop].attributes, depth + 1);
-                            } else {
-                                str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                                if(self.isConstantPropertyName(prop)) {
-                                    var valueLiteral = self.getLiteralValue(obj[prop].value);
-                                    if(valueLiteral) {
-                                        str += self.formatString(' = {0}', valueLiteral);
-                                    }
-                                }
-                                str += ';\n';
+                        str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                        if(self.isConstantPropertyName(prop)) {
+                            var valueLiteral = self.getLiteralValue(obj[prop].value);
+                            if(valueLiteral) {
+                                str += self.formatString(' = {0}', valueLiteral);
                             }
                         }
+                        str += ';\n';
                     }
                 }
             });

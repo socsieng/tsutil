@@ -188,8 +188,8 @@ module TypeScriptUtil {
                         }
                         self.extractInstances(instanceOf, 0);
                     }
-                    if (obj.__proto__ && obj.__proto__.constructor !== Object && !self.isIgnoredValue(obj.__proto__.constructor)) {
-                        self.extractInstances(obj.__proto__, 0);
+                    if (obj['__proto__'] && obj['__proto__'].constructor !== Object && !self.isIgnoredValue(obj['__proto__'].constructor)) {
+                        self.extractInstances(obj['__proto__'], 0);
                     }
                 }
             }
@@ -265,8 +265,8 @@ module TypeScriptUtil {
 
                         objTypeInfo.instanceOf = self.getTypeInfo(ctor);
 
-                        var baseCtor = self.getConstructor(obj.__proto__);
-                        var base = obj.__proto__;
+                        var baseCtor = self.getConstructor(obj['__proto__']);
+                        var base = obj['__proto__'];
 
                         if (baseCtor === ctor) {
                             if (base && self.getAllProperties(base).length && !self.isIgnoredValue(base.constructor)) {
@@ -274,8 +274,8 @@ module TypeScriptUtil {
                                 self.inspectInternal(base, depth + 1, ctorTypeInfo.attributes);
                             }
 
-                            baseCtor = self.getConstructor(obj.__proto__.__proto__);
-                            base = obj.__proto__.__proto__;
+                            baseCtor = self.getConstructor(obj['__proto__']['__proto__']);
+                            base = obj['__proto__']['__proto__'];
                         }
 
                         if (baseCtor) {
