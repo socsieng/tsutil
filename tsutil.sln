@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tsutil", "tsutil.csproj", "{F0B9A12A-75DB-428C-8B6E-F78FE83444C5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{85FE654A-46C3-436C-A399-54FDFE411ACE}"
+	ProjectSection(SolutionItems) = preProject
+		WE-settings.xml = WE-settings.xml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F0B9A12A-75DB-428C-8B6E-F78FE83444C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0B9A12A-75DB-428C-8B6E-F78FE83444C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0B9A12A-75DB-428C-8B6E-F78FE83444C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0B9A12A-75DB-428C-8B6E-F78FE83444C5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,1 +1,11 @@
+# Node JS related stuff
 node_modules/
+
+# Visual studio and .Net related stuff
+bin/
+obj/
+*.csproj.user
+*.suo
+
+# web essentials stuff
+*.js.map
