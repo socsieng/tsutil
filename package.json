@@ -1,27 +1,24 @@
 {
-  "name": "tsutil-tests",
-  "version": "0.1.0",
+  "name": "tsutil",
+  "preferGlobal": true,
   "author": "socsieng@gmail.com",
-  "description": "Unit tests for ts util",
+  "description": "utitlity for generating typescript from javascript runtime objects",
   "contributors": [ 
     {
       "name": "Soc Sieng",
       "email": "socsieng@gmail.com"
     } 
   ],  
-  "main": "./node_modules/jasmine-node/lib/jasmine-node/cli.js test/spec",  
-  "keywords": [
-    "typescript",
-    "javascript",
-    "utility",
-    "util"
-  ],
+  "keywords": ["typescript", "javascript", "utility", "util"],
   "dependencies" : {
+    "typescript": ">= 0.8.2",
     "jasmine-node": ">=1.2.0"
   },
   "noAnalyze": true,
-  "license": "Apache",
   "engines": {
     "node": ">=0.8.0"
+  },
+  "scripts": {
+    "test": "jasmine-node test/spec"
   }
 }
