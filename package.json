@@ -9,7 +9,7 @@
       "email": "socsieng@gmail.com"
     } 
   ],  
-  "main": "./test.js",  
+  "main": "./node_modules/jasmine-node/lib/jasmine-node/cli.js test/spec",  
   "keywords": [
     "typescript",
     "javascript",

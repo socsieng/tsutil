@@ -68,10 +68,9 @@
     <Content Include="src\tsutil.ts" />
     <Content Include="test\index.html" />
     <Content Include="test\spec\tsutil-spec.ts" />
-    <Content Include="test\test.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="test\package.json" />
+    <Content Include="package.json" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="lib\jasmine-1.3.1\MIT.LICENSE" />

@@ -1,6 +1,10 @@
 /// <reference path="../../lib/jasmine.d.ts" />
-/// <reference path="../../src/tsutil.ts" />
 /// <reference path="../../lib/node.d.ts" />
+
+declare var TypeScriptUtil;
+if (typeof TypeScriptUtil === 'undefined' && typeof require === 'function') {
+    TypeScriptUtil = require('../../src/tsutil');
+}
 
 module TestClasses {
     export class Vehicle {
@@ -41,7 +45,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         }
 
         var output = TypeScriptUtil.toTypeScript(primitives, 'Primitives');
-        console.log(output);
+        //console.log(output);
         it('Should correctly handle strings', function () {
             expect(output).toContain('propString: string');
         });
@@ -83,7 +87,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         }
 
         var output = TypeScriptUtil.toTypeScript(constants, 'Constants');
-        console.log(output);
+        //console.log(output);
         it('Should correctly handle normal string constants', function () {
             expect(output).toContain('CONST_STRING: string = \'string value\';');
         });
@@ -125,7 +129,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         }
 
         var output = TypeScriptUtil.toTypeScript(arrays, 'Arrays');
-        console.log(output);
+        //console.log(output);
         it('Should correctly handle string arrays', function () {
             expect(output).toContain('propString: string[]');
             expect(output).not.toContain('module propString');
@@ -186,7 +190,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
 
         it('Should traverse the entire object', function () {
             var output = TypeScriptUtil.toTypeScript(root, 'Root', 0);
-            console.log(output);
+            //console.log(output);
             expect(output).toContain('level5Property: string');
         });
 
@@ -250,7 +254,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
             boat: new TestClasses.Boat('My boat')
         }
         var output = TypeScriptUtil.toTypeScript(stuff, 'Stuff', 0);
-        console.log(output);
+        //console.log(output);
 
         it('Should list classes', function () {
             expect(output).toContain('class Car');
@@ -301,7 +305,7 @@ describe('TypeScriptUtil toTypeScript function', function () {
         oldSchool.anotherInstance = new oldSchool.OldSchoolClass('other');
 
         var output = TypeScriptUtil.toTypeScript(oldSchool, 'OldSchool', 0);
-        console.log(output);
+        //console.log(output);
 
         it('Should resolve class name', function () {
             expect(output).toContain('class OldSchoolClass');

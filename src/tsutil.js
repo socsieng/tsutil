@@ -147,10 +147,14 @@ var TypeScriptUtil;
                 Boolean, 
                 Date, 
                 Function, 
-                Array, 
-                Window, 
-                window
+                Array
             ];
+            if(typeof Window !== 'undefined') {
+                ignored.push(Window);
+            }
+            if(typeof window !== 'undefined') {
+                ignored.push(window);
+            }
             return ignored.indexOf(obj) !== -1;
         };
         ObjectInspector.prototype.extractInstances = function (obj, depth) {
@@ -481,4 +485,7 @@ var TypeScriptUtil;
     }
     TypeScriptUtil.toTypeScript = toTypeScript;
 })(TypeScriptUtil || (TypeScriptUtil = {}));
+if(typeof exports !== 'undefined') {
+    exports.toTypeScript = TypeScriptUtil.toTypeScript;
+}
 //@ sourceMappingURL=tsutil.js.map

@@ -3,6 +3,9 @@ var __extends = this.__extends || function (d, b) {
     __.prototype = b.prototype;
     d.prototype = new __();
 };
+if(typeof TypeScriptUtil === 'undefined' && typeof require === 'function') {
+    TypeScriptUtil = require('../../src/tsutil');
+}
 var TestClasses;
 (function (TestClasses) {
     var Vehicle = (function () {
@@ -48,7 +51,6 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propNull: null
         };
         var output = TypeScriptUtil.toTypeScript(primitives, 'Primitives');
-        console.log(output);
         it('Should correctly handle strings', function () {
             expect(output).toContain('propString: string');
         });
@@ -82,7 +84,6 @@ describe('TypeScriptUtil toTypeScript function', function () {
             CONST_NULL: null
         };
         var output = TypeScriptUtil.toTypeScript(constants, 'Constants');
-        console.log(output);
         it('Should correctly handle normal string constants', function () {
             expect(output).toContain('CONST_STRING: string = \'string value\';');
         });
@@ -135,7 +136,6 @@ describe('TypeScriptUtil toTypeScript function', function () {
             propEmpty: []
         };
         var output = TypeScriptUtil.toTypeScript(arrays, 'Arrays');
-        console.log(output);
         it('Should correctly handle string arrays', function () {
             expect(output).toContain('propString: string[]');
             expect(output).not.toContain('module propString');
@@ -187,7 +187,6 @@ describe('TypeScriptUtil toTypeScript function', function () {
         });
         it('Should traverse the entire object', function () {
             var output = TypeScriptUtil.toTypeScript(root, 'Root', 0);
-            console.log(output);
             expect(output).toContain('level5Property: string');
         });
         it('Should traverse 1 level deep', function () {
@@ -242,7 +241,6 @@ describe('TypeScriptUtil toTypeScript function', function () {
             boat: new TestClasses.Boat('My boat')
         };
         var output = TypeScriptUtil.toTypeScript(stuff, 'Stuff', 0);
-        console.log(output);
         it('Should list classes', function () {
             expect(output).toContain('class Car');
             expect(output).not.toContain('module car');
@@ -288,7 +286,6 @@ describe('TypeScriptUtil toTypeScript function', function () {
         oldSchool.oldSchoolInstance = new oldSchool.OldSchoolClass('instance');
         oldSchool.anotherInstance = new oldSchool.OldSchoolClass('other');
         var output = TypeScriptUtil.toTypeScript(oldSchool, 'OldSchool', 0);
-        console.log(output);
         it('Should resolve class name', function () {
             expect(output).toContain('class OldSchoolClass');
         });

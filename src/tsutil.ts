@@ -162,7 +162,13 @@ module TypeScriptUtil {
         }
 
         private isIgnoredValue(obj: any): bool {
-            var ignored: any[] = [Object, String, Number, Boolean, Date, Function, Array, Window, window];
+            var ignored: any[] = [Object, String, Number, Boolean, Date, Function, Array];
+            if (typeof Window !== 'undefined') {
+                ignored.push(Window);
+            }
+            if (typeof window !== 'undefined') {
+                ignored.push(window);
+            }
             return ignored.indexOf(obj) !== -1;
         }
 
@@ -509,4 +515,8 @@ module TypeScriptUtil {
         }
         return str;
     }
+}
+
+if (typeof exports !== 'undefined') {
+    exports.toTypeScript = TypeScriptUtil.toTypeScript;
 }
