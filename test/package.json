@@ -1,0 +1,27 @@
+{
+  "name": "tsutil-tests",
+  "version": "0.1.0",
+  "author": "socsieng@gmail.com",
+  "description": "Unit tests for ts util",
+  "contributors": [ 
+    {
+      "name": "Soc Sieng",
+      "email": "socsieng@gmail.com"
+    } 
+  ],  
+  "main": "./test.js",  
+  "keywords": [
+    "typescript",
+    "javascript",
+    "utility",
+    "util"
+  ],
+  "dependencies" : {
+    "jasmine-node": ">=1.2.0",
+  },
+  "noAnalyze": true,
+  "license": "Apache",
+  "engines": {
+    "node": ">=0.8.0"
+  }
+}
