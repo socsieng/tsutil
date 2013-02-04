@@ -1,3 +1,5 @@
+/// <reference path="../lib/node.d.ts" />
+
 module TypeScriptUtil {
     class TypeInfo {
         id: string;

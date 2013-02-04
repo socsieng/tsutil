@@ -1,5 +1,6 @@
-/// <reference path="../lib/jasmine.d.ts" />
+/// <reference path="../../lib/jasmine.d.ts" />
 /// <reference path="../../src/tsutil.ts" />
+/// <reference path="../../lib/node.d.ts" />
 
 module TestClasses {
     export class Vehicle {
