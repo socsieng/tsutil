@@ -1,0 +1,17 @@
+{
+  "name": "tsutil",
+  "preferGlobal": true,
+  "version": "0.1.0",
+  "description": "utitlity for generating typescript from javascript runtime objects",
+  "author": "socsieng@gmail.com",
+  "dependencies": {
+    "typescript": ">= 0.8.2",
+    "jasmine-node": ">= 1.2.0"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "jasmine-node test/spec"
+  }
+}
