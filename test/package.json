@@ -17,7 +17,7 @@
     "util"
   ],
   "dependencies" : {
-    "jasmine-node": ">=1.2.0",
+    "jasmine-node": ">=1.2.0"
   },
   "noAnalyze": true,
   "license": "Apache",
