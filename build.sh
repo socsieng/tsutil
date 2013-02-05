@@ -1,0 +1,1 @@
+tsc --out src/tsutil.js src/*.ts

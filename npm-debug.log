@@ -1,0 +1,85 @@
+0 info it worked if it ends with ok
+1 verbose cli [ 'c:\\Program Files\\nodejs\\node.exe',
+1 verbose cli   'c:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js',
+1 verbose cli   'install' ]
+2 info using npm@1.2.2
+3 info using node@v0.8.18
+4 verbose read json c:\Users\socsieng\Documents\projects\tsutil\package.json
+5 verbose readDependencies using package.json deps
+6 verbose install where, deps [ 'c:\\Users\\socsieng\\Documents\\projects\\tsutil',
+6 verbose install   [ 'typescript', 'mocha', 'expect.js' ] ]
+7 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\package.json
+8 info preinstall tsutil@0.1.0
+9 verbose read json c:\Users\socsieng\Documents\projects\tsutil\node_modules\expect.js\package.json
+10 verbose read json c:\Users\socsieng\Documents\projects\tsutil\node_modules\jasmine-node\package.json
+11 verbose read json c:\Users\socsieng\Documents\projects\tsutil\node_modules\mocha\package.json
+12 verbose read json c:\Users\socsieng\Documents\projects\tsutil\node_modules\typescript\package.json
+13 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\package.json
+14 verbose readDependencies using package.json deps
+15 verbose read json c:\Users\socsieng\Documents\projects\tsutil\node_modules\.bin\package.json
+16 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\node_modules\expect.js\package.json
+17 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\node_modules\jasmine-node\package.json
+18 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\node_modules\mocha\package.json
+19 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\node_modules\typescript\package.json
+20 verbose already installed skipping typescript@>= 0.8.2 c:\Users\socsieng\Documents\projects\tsutil
+21 verbose already installed skipping mocha@>= 1.8.0 c:\Users\socsieng\Documents\projects\tsutil
+22 verbose already installed skipping expect.js@>= 0.2.0 c:\Users\socsieng\Documents\projects\tsutil
+23 silly resolved []
+24 info build c:\Users\socsieng\Documents\projects\tsutil
+25 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\package.json
+26 verbose linkStuff [ false,
+26 verbose linkStuff   false,
+26 verbose linkStuff   false,
+26 verbose linkStuff   'c:\\Users\\socsieng\\Documents\\projects' ]
+27 info linkStuff tsutil@0.1.0
+28 verbose linkBins tsutil@0.1.0
+29 verbose linkMans tsutil@0.1.0
+30 verbose rebuildBundles tsutil@0.1.0
+31 verbose rebuildBundles [ '.bin', 'expect.js', 'jasmine-node', 'mocha', 'typescript' ]
+32 verbose rebuild bundle c:\Users\socsieng\Documents\projects\tsutil\node_modules\jasmine-node
+33 info build c:\Users\socsieng\Documents\projects\tsutil\node_modules\jasmine-node
+34 verbose from cache c:\Users\socsieng\Documents\projects\tsutil\node_modules\jasmine-node\package.json
+35 info preinstall jasmine-node@1.2.0
+36 verbose linkStuff [ false,
+36 verbose linkStuff   false,
+36 verbose linkStuff   false,
+36 verbose linkStuff   'c:\\Users\\socsieng\\Documents\\projects\\tsutil\\node_modules' ]
+37 info linkStuff jasmine-node@1.2.0
+38 warn prefer global jasmine-node@1.2.0 should be installed with -g
+39 verbose linkBins jasmine-node@1.2.0
+40 verbose link bins [ { 'jasmine-node': 'bin/jasmine-node' },
+40 verbose link bins   'c:\\Users\\socsieng\\Documents\\projects\\tsutil\\node_modules\\.bin',
+40 verbose link bins   false ]
+41 verbose linkMans jasmine-node@1.2.0
+42 verbose rebuildBundles jasmine-node@1.2.0
+43 verbose rebuildBundles [ '.bin',
+43 verbose rebuildBundles   'coffee-script',
+43 verbose rebuildBundles   'gaze',
+43 verbose rebuildBundles   'jasmine-reporters',
+43 verbose rebuildBundles   'requirejs',
+43 verbose rebuildBundles   'underscore',
+43 verbose rebuildBundles   'walkdir' ]
+44 info install jasmine-node@1.2.0
+45 info postinstall jasmine-node@1.2.0
+46 info install tsutil@0.1.0
+47 verbose unsafe-perm in lifecycle true
+48 silly exec cmd "/c" "tsc --out ./src/tsutil.js ./src/*.ts"
+49 silly cmd,/c,tsc --out ./src/tsutil.js ./src/*.ts,c:\Users\socsieng\Documents\projects\tsutil spawning
+50 info tsutil@0.1.0 Failed to exec install script
+51 error tsutil@0.1.0 install: `tsc --out ./src/tsutil.js ./src/*.ts`
+51 error `cmd "/c" "tsc --out ./src/tsutil.js ./src/*.ts"` failed with 1
+52 error Failed at the tsutil@0.1.0 install script.
+52 error This is most likely a problem with the tsutil package,
+52 error not with npm itself.
+52 error Tell the author that this fails on your system:
+52 error     tsc --out ./src/tsutil.js ./src/*.ts
+52 error You can get their info via:
+52 error     npm owner ls tsutil
+52 error There is likely additional logging output above.
+53 error System Windows_NT 6.2.9200
+54 error command "c:\\Program Files\\nodejs\\node.exe" "c:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js" "install"
+55 error cwd c:\Users\socsieng\Documents\projects\tsutil
+56 error node -v v0.8.18
+57 error npm -v 1.2.2
+58 error code ELIFECYCLE
+59 verbose exit [ 1, true ]

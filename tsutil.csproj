@@ -60,20 +60,21 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="lib\jasmine-1.3.1\jasmine-html.js" />
-    <Content Include="lib\jasmine-1.3.1\jasmine.css" />
-    <Content Include="lib\jasmine-1.3.1\jasmine.js" />
-    <Content Include="lib\jasmine.d.ts" />
+    <Content Include="lib\expect.js" />
+    <Content Include="lib\jquery-1.9.1.js" />
+    <Content Include="lib\mocha.css" />
+    <Content Include="lib\mocha.d.ts" />
+    <Content Include="lib\mocha.js" />
     <Content Include="lib\node.d.ts" />
-    <Content Include="src\tsutil.ts" />
+    <Content Include="src\javascript-info.ts" />
+    <Content Include="src\object-inspector-formatter.ts" />
+    <Content Include="src\object-inspector.ts" />
+    <Content Include="src\typescript-formatter.ts" />
     <Content Include="test\index.html" />
     <Content Include="test\spec\tsutil-spec.ts" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="package.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="lib\jasmine-1.3.1\MIT.LICENSE" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -100,6 +101,9 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
+  <PropertyGroup>
+    <PostBuildEvent>$(ProjectDir)build.bat</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

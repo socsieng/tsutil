@@ -15,7 +15,8 @@ var TypeScriptUtil;
             return this.instanceOf ? this.instanceOf.type : this.type;
         };
         return TypeInfo;
-    })();    
+    })();
+    TypeScriptUtil.TypeInfo = TypeInfo;    
     var ArrayInfo = (function (_super) {
         __extends(ArrayInfo, _super);
         function ArrayInfo(type, name, value) {
@@ -25,7 +26,8 @@ var TypeScriptUtil;
             return this.type + '[]';
         };
         return ArrayInfo;
-    })(TypeInfo);    
+    })(TypeInfo);
+    TypeScriptUtil.ArrayInfo = ArrayInfo;    
     var FunctionInfo = (function (_super) {
         __extends(FunctionInfo, _super);
         function FunctionInfo(functionSource, name) {
@@ -57,14 +59,15 @@ var TypeScriptUtil;
         };
         FunctionInfo.parse = function parse(src) {
             return new FunctionInfo(src, '');
-        }
+        };
         FunctionInfo.prototype.toTypeString = function () {
             return '(' + this.parameters.map(function (item) {
                 return item.name + ': ' + item.type;
             }).join(', ') + '): ' + this.returnType;
         };
         return FunctionInfo;
-    })(TypeInfo);    
+    })(TypeInfo);
+    TypeScriptUtil.FunctionInfo = FunctionInfo;    
     var ClassInfo = (function (_super) {
         __extends(ClassInfo, _super);
         function ClassInfo(ctor, name) {
@@ -79,7 +82,84 @@ var TypeScriptUtil;
             return _super.prototype.toTypeString.call(this);
         };
         return ClassInfo;
-    })(FunctionInfo);    
+    })(FunctionInfo);
+    TypeScriptUtil.ClassInfo = ClassInfo;    
+})(TypeScriptUtil || (TypeScriptUtil = {}));
+var TypeScriptUtil;
+(function (TypeScriptUtil) {
+    var ObjectInspectorFormatter = (function () {
+        function ObjectInspectorFormatter(inspector, indent) {
+            this.inspector = inspector;
+            this.indent = indent || '  ';
+        }
+        ObjectInspectorFormatter.prototype.format = function (rootName) {
+            throw new Error('format method not implemented');
+        };
+        ObjectInspectorFormatter.prototype.formatString = function (format, params) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            var result = format;
+            if(args) {
+                args.forEach(function (arg, index) {
+                    var exp = new RegExp('\\{' + index + ':?([^\\}]*)\\}', 'g');
+                    result = result.replace(exp, arg);
+                });
+            }
+            return result;
+        };
+        ObjectInspectorFormatter.prototype.isValidPropertyName = function (name) {
+            var exp = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
+            return exp.test(name);
+        };
+        ObjectInspectorFormatter.prototype.isConstantPropertyName = function (name) {
+            var exp = /^[A-Z$][A-Z_$0-9]*$/;
+            return exp.test(name);
+        };
+        ObjectInspectorFormatter.prototype.getLiteralValue = function (value) {
+            var type = typeof value;
+            switch(type) {
+                case 'string':
+                    return '\'' + value.replace(/[\\\r\n\t']/g, function (s) {
+                        switch(s) {
+                            case '\\':
+                                return '\\\\';
+                            case '\r':
+                                return '\\r';
+                            case '\n':
+                                return '\\n';
+                            case '\t':
+                                return '\\t';
+                            case '\'':
+                                return '\\\'';
+                        }
+                        return '';
+                    }) + '\'';
+                case 'object':
+                    if(value === null) {
+                        return 'null';
+                    }
+                    if(value instanceof Date) {
+                        return this.formatString('new Date({0})', value.valueOf());
+                    }
+                    return null;
+                case 'number':
+                case 'boolean':
+                    return value.toString();
+            }
+            return null;
+        };
+        ObjectInspectorFormatter.prototype.getIndent = function (level) {
+            var str = '';
+            for(var i = 0; i < level; i++) {
+                str += this.indent;
+            }
+            return str;
+        };
+        return ObjectInspectorFormatter;
+    })();
+    TypeScriptUtil.ObjectInspectorFormatter = ObjectInspectorFormatter;    
+})(TypeScriptUtil || (TypeScriptUtil = {}));
+var TypeScriptUtil;
+(function (TypeScriptUtil) {
     var ObjectInspector = (function () {
         function ObjectInspector(obj, maxDepth) {
             this.obj = obj;
@@ -107,29 +187,19 @@ var TypeScriptUtil;
         ObjectInspector.prototype.getTypeString = function (value, isArray) {
             var type = typeof value;
             switch(type) {
-                case 'object': {
+                case 'object':
                     if(Array.isArray(value)) {
                         return 'any[]';
-                    } else {
-                        if(value instanceof Date) {
-                            return 'Date';
-                        }
+                    } else if(value instanceof Date) {
+                        return 'Date';
                     }
                     return 'any';
-
-                }
-                case 'boolean': {
+                case 'boolean':
                     return 'bool';
-
-                }
-                case 'function': {
+                case 'function':
                     return 'Function';
-
-                }
-                default: {
+                default:
                     return type;
-
-                }
             }
             return 'any';
         };
@@ -185,30 +255,22 @@ var TypeScriptUtil;
         ObjectInspector.prototype.constructTypeInfo = function (obj) {
             var type = this.getTypeString(obj);
             switch(type) {
-                case 'any[]': {
+                case 'any[]':
                     if(obj.length == 0) {
-                        return new ArrayInfo('any', null, obj);
+                        return new TypeScriptUtil.ArrayInfo('any', null, obj);
                     }
-                    return new ArrayInfo(this.getTypeString(obj[0]), null, obj);
-
-                }
-                case 'object': {
-                    return new TypeInfo('any', null, obj);
-
-                }
-                case 'Function': {
+                    return new TypeScriptUtil.ArrayInfo(this.getTypeString(obj[0]), null, obj);
+                case 'object':
+                    return new TypeScriptUtil.TypeInfo('any', null, obj);
+                case 'Function':
                     if(this.allClasses.indexOf(obj) !== -1) {
-                        return new ClassInfo(obj, obj.name);
+                        return new TypeScriptUtil.ClassInfo(obj, obj.name);
                     }
-                    return new FunctionInfo(obj, null);
-
-                }
-                default: {
-                    return new TypeInfo(type, null, obj);
-
-                }
+                    return new TypeScriptUtil.FunctionInfo(obj, null);
+                default:
+                    return new TypeScriptUtil.TypeInfo(type, null, obj);
             }
-            return new TypeInfo('any', null, obj);
+            return new TypeScriptUtil.TypeInfo('any', null, obj);
         };
         ObjectInspector.prototype.getTypeInfo = function (obj) {
             var index = this.allInstances.indexOf(obj);
@@ -295,92 +357,11 @@ var TypeScriptUtil;
             };
         };
         return ObjectInspector;
-    })();    
-    var ObjectInspectorFormatter = (function () {
-        function ObjectInspectorFormatter(inspector, indent) {
-            this.inspector = inspector;
-            this.indent = indent || '  ';
-        }
-        ObjectInspectorFormatter.prototype.format = function (rootName) {
-            throw new Error('format method not implemented');
-        };
-        ObjectInspectorFormatter.prototype.formatString = function (format, params) {
-            var args = Array.prototype.slice.call(arguments, 1);
-            var result = format;
-            if(args) {
-                args.forEach(function (arg, index) {
-                    var exp = new RegExp('\\{' + index + ':?([^\\}]*)\\}', 'g');
-                    result = result.replace(exp, arg);
-                });
-            }
-            return result;
-        };
-        ObjectInspectorFormatter.prototype.isValidPropertyName = function (name) {
-            var exp = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
-            return exp.test(name);
-        };
-        ObjectInspectorFormatter.prototype.isConstantPropertyName = function (name) {
-            var exp = /^[A-Z$][A-Z_$0-9]*$/;
-            return exp.test(name);
-        };
-        ObjectInspectorFormatter.prototype.getLiteralValue = function (value) {
-            var type = typeof value;
-            switch(type) {
-                case 'string': {
-                    return '\'' + value.replace(/[\\\r\n\t']/g, function (s) {
-                        switch(s) {
-                            case '\\': {
-                                return '\\\\';
-
-                            }
-                            case '\r': {
-                                return '\\r';
-
-                            }
-                            case '\n': {
-                                return '\\n';
-
-                            }
-                            case '\t': {
-                                return '\\t';
-
-                            }
-                            case '\'': {
-                                return '\\\'';
-
-                            }
-                        }
-                        return '';
-                    }) + '\'';
-
-                }
-                case 'object': {
-                    if(value === null) {
-                        return 'null';
-                    }
-                    if(value instanceof Date) {
-                        return this.formatString('new Date({0})', value.valueOf());
-                    }
-                    return null;
-
-                }
-                case 'number':
-                case 'boolean': {
-                    return value.toString();
-
-                }
-            }
-            return null;
-        };
-        ObjectInspectorFormatter.prototype.getIndent = function (level) {
-            var str = '';
-            for(var i = 0; i < level; i++) {
-                str += this.indent;
-            }
-            return str;
-        };
-        return ObjectInspectorFormatter;
-    })();    
+    })();
+    TypeScriptUtil.ObjectInspector = ObjectInspector;    
+})(TypeScriptUtil || (TypeScriptUtil = {}));
+var TypeScriptUtil;
+(function (TypeScriptUtil) {
     var TypeScriptFormatter = (function (_super) {
         __extends(TypeScriptFormatter, _super);
         function TypeScriptFormatter(inspector, indent) {
@@ -415,7 +396,7 @@ var TypeScriptUtil;
             props.forEach(function (prop) {
                 if(obj[prop]) {
                     var infoType = obj[prop].constructor.name;
-                    if(obj[prop] instanceof FunctionInfo) {
+                    if(obj[prop] instanceof TypeScriptUtil.FunctionInfo) {
                         str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
                     } else {
                         str += self.formatString('{0}{1}: {2}', self.indent, prop, obj[prop].toTypeString());
@@ -448,34 +429,31 @@ var TypeScriptUtil;
             var str = '';
             props.forEach(function (prop) {
                 if(obj[prop]) {
-                    if(obj[prop] instanceof ClassInfo) {
+                    if(obj[prop] instanceof TypeScriptUtil.ClassInfo) {
+                    } else if(obj[prop] instanceof TypeScriptUtil.FunctionInfo) {
+                        str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                    } else if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof TypeScriptUtil.ClassInfo)) {
+                        str += self.formatModule(prop, obj[prop].attributes, depth + 1);
                     } else {
-                        if(obj[prop] instanceof FunctionInfo) {
-                            str += self.formatString('{0}export function {1}{2} { }\n', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                        } else {
-                            if(obj[prop].attributes && !obj[prop].instanceOf && !(obj[prop] instanceof ClassInfo)) {
-                                str += self.formatModule(prop, obj[prop].attributes, depth + 1);
-                            } else {
-                                str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
-                                if(self.isConstantPropertyName(prop)) {
-                                    var valueLiteral = self.getLiteralValue(obj[prop].value);
-                                    if(valueLiteral) {
-                                        str += self.formatString(' = {0}', valueLiteral);
-                                    }
-                                }
-                                str += ';\n';
+                        str += self.formatString('{0}export var {1}: {2}', self.getIndent(depth + 1), prop, obj[prop].toTypeString());
+                        if(self.isConstantPropertyName(prop)) {
+                            var valueLiteral = self.getLiteralValue(obj[prop].value);
+                            if(valueLiteral) {
+                                str += self.formatString(' = {0}', valueLiteral);
                             }
                         }
+                        str += ';\n';
                     }
                 }
             });
             return str;
         };
         return TypeScriptFormatter;
-    })(ObjectInspectorFormatter);    
+    })(TypeScriptUtil.ObjectInspectorFormatter);
+    TypeScriptUtil.TypeScriptFormatter = TypeScriptFormatter;    
     function toTypeScript(obj, name, maxIterations) {
         var str = '';
-        var insp = new ObjectInspector(obj, maxIterations);
+        var insp = new TypeScriptUtil.ObjectInspector(obj, maxIterations);
         var hier = insp.inspect();
         var formatter = new TypeScriptFormatter(insp);
         if(hier) {
@@ -488,4 +466,3 @@ var TypeScriptUtil;
 if(typeof exports !== 'undefined') {
     exports.toTypeScript = TypeScriptUtil.toTypeScript;
 }
-//@ sourceMappingURL=tsutil.js.map

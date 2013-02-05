@@ -8,4 +8,7 @@ obj/
 *.suo
 
 # web essentials stuff
+src/*.js
 *.js.map
+!src/tsutil.js
+!src/tsutil.js.map
