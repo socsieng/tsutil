@@ -6,12 +6,13 @@
   "author": "socsieng@gmail.com",
   "dependencies": {
     "typescript": ">= 0.8.2",
-    "jasmine-node": ">= 1.2.0"
+    "mocha": ">= 1.8.0",
+    "expect.js": ">= 0.2.0"
   },
   "engines": {
     "node": ">= 0.8.0"
   },
   "scripts": {
-    "test": "jasmine-node test/spec"
+    "test": "mocha test/spec/ --recursive --reporter spec"
   }
 }
