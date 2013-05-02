@@ -128,7 +128,10 @@ module TypeScriptUtil {
             if (index != -1) {
                 return this.allTypes[index];
             }
-            throw new Error('object couldn\'t be found for type: ' + typeof(obj));
+            if (!this.isIgnoredValue(obj)) {
+                throw new Error('object couldn\'t be found for type: ' + typeof(obj));
+            }
+            return null;
         }
 
         private inspectInternal(obj: any, depth: number, infoContainer: any) {
@@ -143,19 +146,22 @@ module TypeScriptUtil {
                         props.forEach(function (prop: string) {
                             var val = obj[prop];
                             var typeInfo = self.getTypeInfo(val);
-                            var ctor = self.getConstructor(val);
 
-                            typeInfo.type = typeInfo.type || prop;
-                            infoContainer[prop] = typeInfo;
+                            if (typeInfo) {
+                                var ctor = self.getConstructor(val);
 
-                            if (ctor) {
-                                typeInfo.instanceOf = self.getTypeInfo(ctor);
-                                typeInfo = typeInfo.instanceOf;
-                            }
+                                typeInfo.type = typeInfo.type || prop;
+                                infoContainer[prop] = typeInfo;
 
-                            if (val && self.getAllProperties(val).length && !Array.isArray(val)) {
-                                typeInfo.attributes = typeInfo.attributes || {};
-                                self.inspectInternal(val, depth + 1, typeInfo.attributes);
+                                if (ctor) {
+                                    typeInfo.instanceOf = self.getTypeInfo(ctor);
+                                    typeInfo = typeInfo.instanceOf;
+                                }
+
+                                if (val && self.getAllProperties(val).length && !Array.isArray(val)) {
+                                    typeInfo.attributes = typeInfo.attributes || {};
+                                    self.inspectInternal(val, depth + 1, typeInfo.attributes);
+                                }
                             }
                         });
                     }
@@ -163,7 +169,7 @@ module TypeScriptUtil {
                     // inheritance
                     var objTypeInfo = self.getTypeInfo(obj);
                     var ctor = self.getConstructor(obj);
-                    if (ctor) {
+                    if (ctor && objTypeInfo) {
                         // obj is an instance of a class
                         var ctorTypeInfo: FunctionInfo = <FunctionInfo>self.getTypeInfo(ctor);
                         ctorTypeInfo.isConstructor = true;

@@ -277,7 +277,10 @@ var TypeScriptUtil;
             if(index != -1) {
                 return this.allTypes[index];
             }
-            throw new Error('object couldn\'t be found for type: ' + typeof (obj));
+            if(!this.isIgnoredValue(obj)) {
+                throw new Error('object couldn\'t be found for type: ' + typeof (obj));
+            }
+            return null;
         };
         ObjectInspector.prototype.inspectInternal = function (obj, depth, infoContainer) {
             var self = this;
@@ -289,23 +292,25 @@ var TypeScriptUtil;
                         props.forEach(function (prop) {
                             var val = obj[prop];
                             var typeInfo = self.getTypeInfo(val);
-                            var ctor = self.getConstructor(val);
-                            typeInfo.type = typeInfo.type || prop;
-                            infoContainer[prop] = typeInfo;
-                            if(ctor) {
-                                typeInfo.instanceOf = self.getTypeInfo(ctor);
-                                typeInfo = typeInfo.instanceOf;
-                            }
-                            if(val && self.getAllProperties(val).length && !Array.isArray(val)) {
-                                typeInfo.attributes = typeInfo.attributes || {
-                                };
-                                self.inspectInternal(val, depth + 1, typeInfo.attributes);
+                            if(typeInfo) {
+                                var ctor = self.getConstructor(val);
+                                typeInfo.type = typeInfo.type || prop;
+                                infoContainer[prop] = typeInfo;
+                                if(ctor) {
+                                    typeInfo.instanceOf = self.getTypeInfo(ctor);
+                                    typeInfo = typeInfo.instanceOf;
+                                }
+                                if(val && self.getAllProperties(val).length && !Array.isArray(val)) {
+                                    typeInfo.attributes = typeInfo.attributes || {
+                                    };
+                                    self.inspectInternal(val, depth + 1, typeInfo.attributes);
+                                }
                             }
                         });
                     }
                     var objTypeInfo = self.getTypeInfo(obj);
                     var ctor = self.getConstructor(obj);
-                    if(ctor) {
+                    if(ctor && objTypeInfo) {
                         var ctorTypeInfo = self.getTypeInfo(ctor);
                         ctorTypeInfo.isConstructor = true;
                         ctorTypeInfo.type = ctorTypeInfo.type || 'AnonymousType_' + (++self.anonymousCount);
