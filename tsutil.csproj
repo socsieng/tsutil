@@ -66,6 +66,7 @@
     <Content Include="lib\mocha.d.ts" />
     <Content Include="lib\mocha.js" />
     <Content Include="lib\node.d.ts" />
+    <Content Include="src\mocha-bdd-formatter.ts" />
     <Content Include="src\javascript-info.ts" />
     <Content Include="src\object-inspector-formatter.ts" />
     <Content Include="src\object-inspector.ts" />
