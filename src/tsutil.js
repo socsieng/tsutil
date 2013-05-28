@@ -487,16 +487,15 @@ var TypeScriptUtil;
             var self = this;
             var str = '';
             self.inspector.classes.forEach(function (cl) {
-                str += self.formatString('class {0}', cl.type);
+                str += self.formatString('describe("{0}", function() {\n', self.encodeString(cl.type));
                 if(cl.inherits) {
-                    str += self.formatString(' extends {0}', cl.inherits.type);
+                    str += self.formatString('\n// extends {0}', cl.inherits.type);
                 }
-                str += ' {\n';
-                str += self.formatString('{0}constructor {1} { }\n', self.indent, cl.toConstructorString());
+                str += self.formatString('{0}it.skip("Should instantiate {1}{2}", function() { });\n', self.indent, self.encodeString(cl.type), cl.toConstructorString());
                 if(cl.attributes) {
                     str += self.formatClassMembers(cl.attributes);
                 }
-                str += '}\n';
+                str += '});\n';
             });
             return str;
         };
@@ -508,16 +507,9 @@ var TypeScriptUtil;
                 if(obj[prop]) {
                     var infoType = obj[prop].constructor.name;
                     if(obj[prop] instanceof TypeScriptUtil.FunctionInfo) {
-                        str += self.formatString('{0}{1}{2} { }\n', self.indent, prop, obj[prop].toTypeString());
-                    } else {
-                        str += self.formatString('{0}{1}: {2}', self.indent, prop, obj[prop].toTypeString());
-                        if(self.isConstantPropertyName(prop)) {
-                            var valueLiteral = self.getLiteralValue(obj[prop].value);
-                            if(valueLiteral) {
-                                str += self.formatString(' = {0}', valueLiteral);
-                            }
-                        }
-                        str += ';\n';
+                        str += self.formatString('{0}describe("{1}", function() {\n', self.getIndent(1), self.encodeString(prop));
+                        str += self.formatString('{0}it.skip("Should invoke {1}", function(done) { });\n', self.getIndent(2), self.encodeString(prop));
+                        str += self.formatString('{0}});\n', self.getIndent(1));
                     }
                 }
             });
@@ -529,7 +521,7 @@ var TypeScriptUtil;
         MochaBddFormatter.prototype.formatModule = function (name, attributes, depth, ancestors) {
             var self = this;
             var str = '';
-            str += self.formatString('{0}describe("{1}", function() {\n', self.getIndent(depth), self.encodeString(ancestors ? ancestors + '.' + name : name));
+            str += self.formatString('{0}describe("{1}", function() {\n', self.getIndent(depth), self.encodeString(ancestors ? ancestors : name));
             if(attributes) {
                 str += self.formatModuleMembers(attributes, depth, ancestors ? ancestors : name);
             }
@@ -562,7 +554,7 @@ var TypeScriptUtil;
         var str = '';
         var insp = new TypeScriptUtil.ObjectInspector(obj, maxIterations);
         var hier = insp.inspect();
-        var formatter = new MochaBddFormatter(insp);
+        var formatter = new MochaBddFormatter(insp, '    ');
         if(hier) {
             str += formatter.format(name);
         }
